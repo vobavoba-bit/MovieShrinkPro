@@ -54,6 +54,8 @@ class MovieShrink(tk.Tk):
         self.preview_position=tk.DoubleVar(value=0)
         self.preview_clock=tk.StringVar(value="00:00 / --:--")
         self.preview_seek_drag=False
+        self.external_subtitles={}
+        self.current_preview_frame=None
         self.ui()
         if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
         self.after(100,self.poll)
@@ -370,6 +372,9 @@ class MovieShrink(tk.Tk):
         self.tree.pack(side="left",fill="both",expand=True)
         self.tree.tag_configure("even",background="#f7fbff")
         self.tree.tag_configure("odd",background="#dfeeff")
+        self.tree.tag_configure("active",background="#b6deff",foreground="#07542a",font=("Segoe UI",9,"bold"))
+        self.tree.tag_configure("completed",background="#d9f6e0",foreground="#0f5630")
+        self.tree.tag_configure("error",background="#ffe1e0",foreground="#8e1d1d")
         self.tree.bind("<<TreeviewSelect>>",self._selected)
         self.queue_summary=tk.StringVar(value="0 ταινίες στην ουρά")
         tk.Label(left,textvariable=self.queue_summary,bg="#cfe1f3",fg=navy,
@@ -392,11 +397,15 @@ class MovieShrink(tk.Tk):
         self.preview_slider.bind("<ButtonRelease-1>",self.preview_seek_end)
         tk.Label(transport,text="🔇",bg="#112d48",fg="#e2f2ff",
                  font=("Segoe UI",10)).pack(side="right",padx=5)
-        pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=5,pady=(1,1))
-        self.preview_button=ttk.Button(pc,text="▶ Προεπισκόπηση",command=self.toggle_preview)
-        self.preview_button.pack(side="left",padx=(0,4))
+        pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=4,pady=(1,1))
+        self.preview_button=ttk.Button(pc,text="▶ Παίξε",command=self.enable_preview)
+        self.preview_button.pack(side="left",padx=(0,2))
         self.preview_pause_button=ttk.Button(pc,text="⏸ Παύση",command=self.pause_preview,state="disabled")
-        self.preview_pause_button.pack(side="left")
+        self.preview_pause_button.pack(side="left",padx=(0,2))
+        self.preview_off_button=ttk.Button(pc,text="■ Κλείσιμο",command=self.disable_preview,state="disabled")
+        self.preview_off_button.pack(side="left",padx=(0,2))
+        self.preview_capture_button=ttk.Button(pc,text="📷",width=3,command=self.save_preview_frame,state="disabled")
+        self.preview_capture_button.pack(side="left")
         self.preview_state=tk.StringVar(value="Κλειστή • εξοικονόμηση CPU")
         tk.Label(center,textvariable=self.preview_state,bg=paper,fg="#406b94",
                  font=("Segoe UI",9),anchor="w",padx=7).pack(fill="x")
@@ -412,8 +421,10 @@ class MovieShrink(tk.Tk):
         tk.Label(subs,textvariable=self.subtitle_info,bg="#d3e7fa",fg="#1e507e",
                  font=("Segoe UI",9),anchor="w",wraplength=300,padx=7,pady=3).pack(fill="x")
         self.copy_subtitles=tk.BooleanVar(value=True)
-        ttk.Checkbutton(subs,text="Αντιγραφή εξωτερικών υποτίτλων",
-                        variable=self.copy_subtitles).pack(anchor="w",padx=6,pady=(1,4))
+        subrow=tk.Frame(subs,bg="#d3e7fa");subrow.pack(fill="x",padx=6,pady=(1,3))
+        ttk.Checkbutton(subrow,text="Χρήση υποτίτλων",
+                        variable=self.copy_subtitles).pack(side="left")
+        ttk.Button(subrow,text="📂 SRT / ASS",command=self.browse_subtitle).pack(side="right")
         # Right settings in a single vertical pane, not hidden in tab pages.
         # Keep Quality Guard and action controls visible; scroll only detailed settings.
         pinned=tk.Frame(right,bg=paper)
@@ -539,10 +550,12 @@ class MovieShrink(tk.Tk):
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
         for i,x in enumerate(self.items):
-            self.tree.insert("","end",iid=str(i),tags=("odd" if i%2 else "even",),values=(x["path"].name,x.get("duration_text","—"),x.get("resolution","—"),f'{x["pct"]:.0f}%',x["state"]))
+            self.tree.insert("","end",iid=str(i),tags=(("active" if x["state"]=="Επεξεργασία" else "completed" if x["state"]=="Έτοιμο" else "error" if x["state"]=="Σφάλμα" else "odd" if i%2 else "even"),),values=(x["path"].name,x.get("duration_text","—"),x.get("resolution","—"),f'{x["pct"]:.0f}%',x["state"]))
         if self.items:self.allpct.set(sum(x["pct"] for x in self.items)/len(self.items))
         if hasattr(self,"queue_summary"):self.queue_summary.set(f"{len(self.items)} ταινίες  ·  {sum(x['state']=='Έτοιμο' for x in self.items)} ολοκληρωμένες")
     def sub(self,p):
+        custom=self.external_subtitles.get(str(p))
+        if custom and custom.is_file():return custom
         return next((p.with_suffix(ext) for ext in (".srt",".ass",".ssa") if p.with_suffix(ext).is_file()),None)
     def add(self,paths):
         seen={str(x["path"]) for x in self.items}
@@ -592,6 +605,29 @@ class MovieShrink(tk.Tk):
         if duration<=0:return
         self.preview_seek=max(0,min(duration-1,duration*self.preview_position.get()/100))
         self.preview()
+    def browse_subtitle(self):
+        selected=self.tree.selection()
+        if not selected:
+            messagebox.showinfo("Υπότιτλοι","Επίλεξε πρώτα ταινία από τη λίστα.")
+            return
+        index=int(selected[0])
+        if index>=len(self.items):return
+        path=filedialog.askopenfilename(title="Επιλογή υποτίτλων",
+             filetypes=[("Υπότιτλοι","*.srt *.ass *.ssa")])
+        if path:
+            self.external_subtitles[str(self.items[index]["path"])]=P(path)
+            self.subtitle_info.set("Υπότιτλοι: "+P(path).name)
+            self.copy_subtitles.set(True)
+    def save_preview_frame(self):
+        if self.current_preview_frame is None:
+            messagebox.showinfo("Καρέ","Ενεργοποίησε την προεπισκόπηση πρώτα.")
+            return
+        filename=filedialog.asksaveasfilename(defaultextension=".png",
+            filetypes=[("Εικόνα PNG","*.png")],title="Αποθήκευση καρέ")
+        if filename:
+            self.current_preview_frame.save(filename)
+    def enable_preview(self):
+        if not self.preview_enabled:self.toggle_preview()
     def toggle_preview(self):
         if self.preview_enabled:
             self.disable_preview()
@@ -600,7 +636,9 @@ class MovieShrink(tk.Tk):
                 messagebox.showinfo("Προεπισκόπηση","Πρόσθεσε πρώτα μια ταινία.")
                 return
             self.preview_enabled=True
-            self.preview_button.configure(text="■ Απενεργοποίηση")
+            self.preview_button.configure(state="disabled")
+            self.preview_off_button.configure(state="normal")
+            self.preview_capture_button.configure(state="disabled")
             self.preview_pause_button.configure(state="normal",text="⏸ Παύση")
             self.preview_pause.clear()
             self.preview()
@@ -623,12 +661,15 @@ class MovieShrink(tk.Tk):
         if proc and proc.poll() is None:
             try:proc.terminate()
             except OSError:pass
-        self.preview_button.configure(text="▶ Ενεργοποίηση")
+        self.preview_button.configure(text="▶ Παίξε",state="normal")
+        self.preview_off_button.configure(state="disabled")
+        self.preview_capture_button.configure(state="disabled")
         self.preview_pause_button.configure(state="disabled",text="⏸ Παύση")
         self.preview_state.set("Προεπισκόπηση: κλειστή")
         self.preview_clock.set("00:00 / "+self.clock_string(self.preview_duration))
         self.image.configure(image="",text="▶\n\nΠροεπισκόπηση απενεργοποιημένη")
         self.pic=None
+        self.current_preview_frame=None
     def preview(self):
         """CPU-friendly silent video playback, separately switchable from conversion."""
         if not self.preview_enabled or not self.items:return
@@ -777,8 +818,10 @@ class MovieShrink(tk.Tk):
                     if generation==self.preview_generation and self.preview_enabled:
                         from PIL import Image, ImageTk
                         im=Image.frombytes("RGB",(320,180),frame)
+                        self.current_preview_frame=im
                         self.pic=ImageTk.PhotoImage(im)
                         self.image.configure(image=self.pic,text="")
+                        self.preview_capture_button.configure(state="normal")
                         if not self.preview_seek_drag and self.preview_duration>0:
                             self.preview_position.set(min(100,100*position/self.preview_duration))
                         self.preview_clock.set(self.clock_string(position)+" / "+self.clock_string(self.preview_duration))
