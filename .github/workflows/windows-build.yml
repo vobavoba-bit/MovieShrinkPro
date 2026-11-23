@@ -56,7 +56,11 @@ jobs:
           Start-Sleep -Seconds 9
           $p.Refresh()
           if ($p.HasExited) { throw "GUI exited unexpectedly with $($p.ExitCode)" }
-          Stop-Process -Id $p.Id -Force
+          try {
+            python capture_real_gui.py
+          } finally {
+            Stop-Process -Id $p.Id -Force
+          }
       - name: Create download ZIP
         shell: pwsh
         run: |
@@ -65,4 +69,13 @@ jobs:
         with:
           name: MovieShrinkPro_Windows10_x64
           path: MovieShrinkPro_Windows10_x64.zip
+          retention-days: 30
+
+      - name: Upload actual Windows application screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieShrinkPro_Actual_Screenshot
+          path: MovieShrinkPro_Actual_Windows_Screenshot.png
+          if-no-files-found: ignore
           retention-days: 30
