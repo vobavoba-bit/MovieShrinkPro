@@ -43,6 +43,7 @@ class MovieShrink(tk.Tk):
         self.audio=tk.StringVar(value="AAC Stereo");self.format=tk.StringVar(value="MP4")
         self.output=tk.StringVar(value=str(P.home()/"Videos"/"MovieShrinkPro"))
         self.pct=tk.DoubleVar();self.allpct=tk.DoubleVar();self.status=tk.StringVar(value="Έτοιμο")
+        self.current_percent=tk.StringVar(value="0%");self.overall_percent=tk.StringVar(value="0%")
         self.metrics=tk.StringVar(value="Ταχύτητα: — FPS | Χρόνος: —")
         self.source_progress_label=tk.StringVar(value="Αρχική ταινία: —")
         self.output_progress_label=tk.StringVar(value="Μετατροπή σε 1080p • Συνολική πρόοδος")
@@ -57,8 +58,9 @@ class MovieShrink(tk.Tk):
         if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
         self.after(100,self.poll)
         for v in (self.quality,self.size,self.format,self.audio):v.trace_add("write",self.update_quality_hint)
+        for v in (self.pct,self.allpct):v.trace_add("write",self.update_progress_labels)
         self.size.trace_add("write",self.update_progress_target)
-        self.update_quality_hint();self.update_progress_target()
+        self.update_quality_hint();self.update_progress_target();self.update_progress_labels()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
         self.bind("<Configure>",self.auto_layout)
     def glossy_button(self,parent,label,command,colors,width=152,height=52):
@@ -168,6 +170,9 @@ class MovieShrink(tk.Tk):
         button.bind("<Enter>",lambda e:button.configure(image=hot))
         button.bind("<Leave>",lambda e:button.configure(image=normal))
         return button
+    def update_progress_labels(self,*_):
+        self.current_percent.set(f"{self.pct.get():.0f}%")
+        self.overall_percent.set(f"{self.allpct.get():.1f}%".replace(".0%","%"))
     def auto_layout(self,event):
         if event.widget is not self:return
         if hasattr(self,"preview_box"):
@@ -300,12 +305,16 @@ class MovieShrink(tk.Tk):
                                          ("#ff8888","#b00920","#790719"),width=152,height=50)
         self.stop_btn.pack(side="left")
         bframe=tk.Frame(inner,bg=white);bframe.pack(side="left",fill="both",expand=True)
-        for var,style_name,percentage in ((self.source_progress_label,"Green.Horizontal.TProgressbar",self.pct),
-                                           (self.output_progress_label,"Blue.Horizontal.TProgressbar",self.allpct)):
+        for var,style_name,percentage,percentage_text in (
+              (self.source_progress_label,"Green.Horizontal.TProgressbar",self.pct,self.current_percent),
+              (self.output_progress_label,"Blue.Horizontal.TProgressbar",self.allpct,self.overall_percent)):
             tk.Label(bframe,textvariable=var,bg=white,fg=navy,
                      font=("Segoe UI",10,"bold"),anchor="w").pack(fill="x",pady=(0,1))
-            ttk.Progressbar(bframe,variable=percentage,maximum=100,
-                            style=style_name).pack(fill="x",pady=(0,4))
+            barrow=tk.Frame(bframe,bg=white);barrow.pack(fill="x",pady=(0,3))
+            tk.Label(barrow,textvariable=percentage_text,bg=white,fg="#173453",
+                     font=("Segoe UI",12,"bold"),width=7,anchor="e").pack(side="right",padx=(8,0))
+            ttk.Progressbar(barrow,variable=percentage,maximum=100,
+                            style=style_name).pack(side="left",fill="x",expand=True,pady=3)
         tk.Label(bottom,textvariable=self.status,bg=white,fg="#23547e",
                  font=("Segoe UI",9),anchor="w").pack(fill="x",padx=10)
         tk.Label(bottom,textvariable=self.metrics,bg=white,fg="#23547e",
