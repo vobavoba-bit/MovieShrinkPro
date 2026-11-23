@@ -297,10 +297,26 @@ class MovieShrink(tk.Tk):
             root=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
             logo=Image.open(root/"assets"/"movieshrink_logo.jpg").convert("RGBA")
             # Crop just the film-reel / disc / MP4 artwork to avoid duplicate text in the header.
-            lw,lh=logo.size
-            reel=logo.crop((int(lw*.035),int(lh*.16),int(lw*.96),int(lh*.73)))
-            reel=reel.resize((355,202),Image.Resampling.LANCZOS)
-            banner.alpha_composite(reel,(13,9))
+            # Draw sharp, resolution-independent reel/DVD/MP4 insignia.
+            art=Image.new("RGBA",(382,202),(0,0,0,0))
+            dr=ImageDraw.Draw(art)
+            dr.ellipse((0,132,350,193),outline="#eeb53b",width=6)
+            dr.ellipse((12,10,205,198),fill="#273854",outline="#d9f5ff",width=8)
+            dr.ellipse((31,29,186,178),fill="#abb9cc",outline="#f6fcff",width=5)
+            for cx,cy in ((104,56),(156,105),(103,150),(55,104)):
+                dr.ellipse((cx-23,cy-23,cx+23,cy+23),fill="#07162b",outline="#69839c",width=4)
+            dr.ellipse((94,76,247,195),fill="#9ec5e9",outline="#ffffff",width=6)
+            dr.arc((96,77,245,194),45,185,fill="#7ae1ff",width=13)
+            dr.arc((99,81,241,190),195,335,fill="#ffe49b",width=10)
+            dr.ellipse((164,125,199,159),fill="#112b4a",outline="#ebfcff",width=5)
+            dr.polygon([(221,102),(276,102),(276,85),(311,121),(279,156),(279,141),(221,141)],fill="#00c5fa",outline="#d1faff")
+            dr.rounded_rectangle((277,36,375,175),radius=12,fill="#07366e",outline="#32d4ff",width=5)
+            dr.polygon([(281,37),(371,27),(376,61),(290,71)],fill="#ffffff")
+            for n in range(3):
+                px=290+n*26
+                dr.polygon([(px,37),(px+11,34),(px+25,65),(px+13,67)],fill="#081d37")
+            dr.polygon([(310,86),(310,128),(352,107)],fill="white")
+            banner.alpha_composite(art,(7,8))
             self.brand_image=ImageTk.PhotoImage(logo.resize((64,64),Image.Resampling.LANCZOS))
         except Exception:
             bd.ellipse((22,20,190,188),fill="#0e5b9c",outline="#68cbff",width=6)
