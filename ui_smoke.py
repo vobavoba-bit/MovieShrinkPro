@@ -6,6 +6,15 @@ app = MovieShrink()
 app.withdraw()
 app.update_idletasks()
 assert app.preview_enabled is False
+assert app.preview_slider.winfo_class() == "TScale"
+assert app.clock_string(3661) == "01:01:01"
+assert app.preview_position.get() == 0
+assert app.preview_box.winfo_exists()
+app.preview_seek=7.0
+app.preview_duration=100.0
+app.preview_clock.set("00:07 / 01:40")
+assert app.preview_clock.get() == "00:07 / 01:40"
+assert len(app._styled_button_images)>=16
 assert app.copy_subtitles.get() is True
 assert app.size.get() == "1080p"
 assert app.source_progress_label.get().startswith("Αρχική")
