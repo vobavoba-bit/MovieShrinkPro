@@ -41,42 +41,128 @@ class MovieShrink(tk.Tk):
         self.metrics=tk.StringVar(value="Ταχύτητα: — FPS | Χρόνος: —")
         self.ui();self.after(100,self.poll)
     def ui(self):
-        bar=tk.Frame(self,bg="#123b68");bar.pack(fill="x")
-        tk.Label(bar,text="🎬 MovieShrink Pro",bg="#123b68",fg="white",font=("Segoe UI",23,"bold")).pack(anchor="w",padx=14,pady=7)
-        tk.Label(bar,text="Δωρεάν μετατροπή • 1080p / 4K • Ουρά • Υπότιτλοι • Smart Quality Guard",bg="#123b68",fg="#d8ecff").pack(anchor="w",padx=15,pady=(0,10))
-        toolbar=ttk.Frame(self,padding=8);toolbar.pack(fill="x")
-        for title,action in (("Προσθήκη ταινιών",self.addfiles),("Φάκελος / USB",self.addfolder),("DVD VIDEO_TS",self.adddvd),("Αφαίρεση",self.remove)):
-            ttk.Button(toolbar,text=title,command=action).pack(side="left",padx=4)
-        split=ttk.Panedwindow(self,orient="horizontal");split.pack(fill="both",expand=True,padx=10)
-        left=ttk.LabelFrame(split,text="Ουρά ταινιών",padding=6);split.add(left,weight=5)
-        self.tree=ttk.Treeview(left,columns=("file","sub","pct","state"),show="headings")
-        for c,t,w in (("file","Ταινία",245),("sub","SRT",50),("pct","%",55),("state","Κατάσταση",110)):
-            self.tree.heading(c,text=t);self.tree.column(c,width=w)
-        self.tree.pack(fill="both",expand=True)
-        right=ttk.Frame(split,padding=6);split.add(right,weight=4)
-        preview=ttk.LabelFrame(right,text="Προεπισκόπηση αρχικής εικόνας",padding=7);preview.pack(fill="x")
-        self.image=tk.Label(preview,bg="#112139",fg="white",text="Προεπισκόπηση καρέ",height=10)
-        self.image.pack(fill="x")
-        ttk.Button(preview,text="Δες επιλεγμένη ταινία",command=self.preview).pack(anchor="e")
-        settings=ttk.LabelFrame(right,text="Ρυθμίσεις ποιότητας και ήχου",padding=8);settings.pack(fill="x",pady=8)
-        for label,var,options in (("Ανάλυση",self.size,["Πρωτότυπη","1080p","4K"]),
+        # Compact DVD Shrink-inspired layout for 13-inch Windows 10 laptops.
+        bg="#e8eef5"; navy="#102b4b"; blue="#1263a9"; panel="#ffffff"
+        ink="#163450"; muted="#526981"
+        self.configure(bg=bg)
+        style=ttk.Style(self)
+        style.theme_use("clam")
+        style.configure("TFrame",background=bg)
+        style.configure("Panel.TFrame",background=panel)
+        style.configure("TLabel",background=bg,foreground=ink,font=("Segoe UI",9))
+        style.configure("Panel.TLabel",background=panel,foreground=ink,font=("Segoe UI",9))
+        style.configure("TButton",font=("Segoe UI",9,"bold"),padding=(9,7),background="#dbe7f4",foreground=navy)
+        style.map("TButton",background=[("active","#bed7f0")])
+        style.configure("Action.TButton",background="#168943",foreground="white",padding=(16,9))
+        style.map("Action.TButton",background=[("active","#0f7536")],foreground=[("active","white")])
+        style.configure("Stop.TButton",background="#bd3540",foreground="white",padding=(12,9))
+        style.map("Stop.TButton",background=[("active","#a32933")],foreground=[("active","white")])
+        style.configure("TCombobox",padding=4,font=("Segoe UI",9))
+        style.configure("Treeview",font=("Segoe UI",9),rowheight=27,background="white",
+                        fieldbackground="white",foreground=ink,selectedbackground="#c9e3ff",selectedforeground=navy)
+        style.configure("Treeview.Heading",background="#d6e5f5",foreground=navy,
+                        font=("Segoe UI",9,"bold"),padding=7)
+        style.configure("Green.Horizontal.TProgressbar",background="#20b14c",troughcolor="#dbe5ef",thickness=12)
+        style.configure("Blue.Horizontal.TProgressbar",background="#168dd1",troughcolor="#dbe5ef",thickness=10)
+
+        header=tk.Frame(self,bg=navy,height=83);header.pack(fill="x");header.pack_propagate(False)
+        tk.Label(header,text="◉  MovieShrink Pro",font=("Segoe UI",22,"bold"),
+                 bg=navy,fg="white").pack(side="left",padx=(18,12),pady=14)
+        tk.Label(header,text="DVD  ·  USB  ·  MP4  ·  1080p  ·  4K",
+                 font=("Segoe UI",10,"bold"),bg=navy,fg="#86ceff").pack(side="left",pady=18)
+        tk.Label(header,text="SMART QUALITY GUARD",font=("Segoe UI",9,"bold"),
+                 bg="#165c93",fg="white",padx=12,pady=8).pack(side="right",padx=16)
+
+        toolbar=tk.Frame(self,bg="#d8e6f4",height=53);toolbar.pack(fill="x");toolbar.pack_propagate(False)
+        for title,action in (("＋  Προσθήκη ταινιών",self.addfiles),
+                             ("▣  Φάκελος / USB",self.addfolder),
+                             ("◉  DVD",self.adddvd),
+                             ("✕  Αφαίρεση",self.remove)):
+            ttk.Button(toolbar,text=title,command=action).pack(side="left",padx=(8,0),pady=7)
+
+        main=ttk.Panedwindow(self,orient="horizontal")
+        main.pack(fill="both",expand=True,padx=10,pady=(9,5))
+        left=tk.Frame(main,bg=panel,highlightbackground="#c1d3e5",highlightthickness=1)
+        right=tk.Frame(main,bg=bg)
+        main.add(left,weight=5);main.add(right,weight=4)
+
+        def heading(parent,text):
+            h=tk.Frame(parent,bg="#1c5688",height=30)
+            h.pack(fill="x")
+            tk.Label(h,text=text,fg="white",bg="#1c5688",
+                     font=("Segoe UI",10,"bold")).pack(anchor="w",padx=10,pady=5)
+            return h
+        heading(left,"▤  Ουρά επεξεργασίας ταινιών")
+        table_area=tk.Frame(left,bg=panel);table_area.pack(fill="both",expand=True,padx=7,pady=7)
+        self.tree=ttk.Treeview(table_area,columns=("file","sub","pct","state"),show="headings")
+        for c,t,w in (("file","Όνομα αρχείου",220),("sub","SRT",44),
+                      ("pct","%",45),("state","Κατάσταση",112)):
+            self.tree.heading(c,text=t)
+            self.tree.column(c,width=w,minwidth=35,stretch=(c=="file"))
+        scroll=ttk.Scrollbar(table_area,orient="vertical",command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right",fill="y")
+        self.tree.pack(side="left",fill="both",expand=True)
+        tk.Label(left,text="Οι ταινίες μετατρέπονται μία-μία · Οι εξωτερικοί SRT παραμένουν ξεχωριστοί",
+                 bg=panel,fg=muted,font=("Segoe UI",8),wraplength=430,
+                 justify="left").pack(anchor="w",padx=10,pady=(0,8))
+
+        preview_panel=tk.Frame(right,bg=panel,highlightbackground="#c1d3e5",highlightthickness=1)
+        preview_panel.pack(fill="x",pady=(0,7))
+        heading(preview_panel,"▣  Προεπισκόπηση ταινίας")
+        self.image=tk.Label(preview_panel,bg="#0a1829",fg="#d9eafa",
+                            text="▶   Επίλεξε ταινία για προεπισκόπηση",
+                            font=("Segoe UI",10),height=9)
+        self.image.pack(fill="x",padx=7,pady=(7,3))
+        row=tk.Frame(preview_panel,bg=panel);row.pack(fill="x",padx=8,pady=(1,7))
+        tk.Label(row,text="Καρέ αρχικού βίντεο",bg=panel,fg=muted,
+                 font=("Segoe UI",8)).pack(side="left")
+        ttk.Button(row,text="▶ Προεπισκόπηση",command=self.preview).pack(side="right")
+
+        options=tk.Frame(right,bg=panel,highlightbackground="#c1d3e5",highlightthickness=1)
+        options.pack(fill="x",pady=(0,7))
+        heading(options,"⚙  Ποιότητα εικόνας και ήχου")
+        field=tk.Frame(options,bg=panel);field.pack(fill="x",padx=10,pady=(8,4))
+        for label,var,values in (("Ανάλυση εξόδου",self.size,["Πρωτότυπη","1080p","4K"]),
                                   ("Ποιότητα",self.quality,["Μέγιστη","Ισορροπημένη","Μικρότερο αρχείο"]),
-                                  ("Έξοδος",self.format,["MP4","MKV"]),
+                                  ("Μορφή αρχείου",self.format,["MP4","MKV"]),
                                   ("Ήχος",self.audio,["AAC Stereo","Dolby Digital AC3","Αρχικός ήχος"])):
-            ttk.Label(settings,text=label).pack(anchor="w")
-            ttk.Combobox(settings,textvariable=var,values=options,state="readonly").pack(fill="x",pady=(0,5))
-        dest=ttk.LabelFrame(right,text="Φάκελος αποθήκευσης",padding=7);dest.pack(fill="x")
-        ttk.Entry(dest,textvariable=self.output).pack(fill="x")
-        ttk.Button(dest,text="Επιλογή φακέλου",command=self.destination).pack(anchor="e")
-        bottom=ttk.Frame(self,padding=10);bottom.pack(fill="x")
-        ttk.Label(bottom,textvariable=self.status).pack(anchor="w")
-        ttk.Progressbar(bottom,variable=self.pct,maximum=100).pack(fill="x",pady=4)
-        ttk.Label(bottom,textvariable=self.metrics).pack(anchor="w")
-        ttk.Label(bottom,text="Συνολική πρόοδος").pack(anchor="w")
-        ttk.Progressbar(bottom,variable=self.allpct,maximum=100).pack(fill="x",pady=4)
-        buttons=ttk.Frame(bottom);buttons.pack(fill="x",pady=4)
-        self.btn=ttk.Button(buttons,text="▶ Έναρξη",command=self.start);self.btn.pack(side="right",padx=5)
-        ttk.Button(buttons,text="■ Διακοπή",command=self.stop).pack(side="right")
+            line=tk.Frame(field,bg=panel);line.pack(fill="x",pady=2)
+            tk.Label(line,text=label,fg=ink,bg=panel,font=("Segoe UI",9),
+                     anchor="w",width=18).pack(side="left")
+            ttk.Combobox(line,textvariable=var,values=values,state="readonly",width=22).pack(side="left",fill="x",expand=True)
+        tk.Label(options,text="⚠  Το 4K upscaling δεν δημιουργεί πραγματική λεπτομέρεια.",
+                 fg="#8c650d",bg="#fff3d2",font=("Segoe UI",8),
+                 anchor="w",wraplength=375,justify="left",padx=7,pady=5).pack(fill="x",padx=8,pady=(5,8))
+
+        dest=tk.Frame(right,bg=panel,highlightbackground="#c1d3e5",highlightthickness=1)
+        dest.pack(fill="x")
+        heading(dest,"▣  Αποθήκευση αρχείων")
+        drow=tk.Frame(dest,bg=panel);drow.pack(fill="x",padx=8,pady=6)
+        ttk.Entry(drow,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,5))
+        ttk.Button(drow,text="…",width=3,command=self.destination).pack(side="right")
+
+        bottom=tk.Frame(self,bg=panel,highlightbackground="#b4cade",highlightthickness=1)
+        bottom.pack(fill="x",padx=10,pady=(3,9))
+        tk.Label(bottom,text="▥  Πρόοδος μετατροπής",bg="#1c5688",fg="white",
+                 font=("Segoe UI",10,"bold"),anchor="w",padx=10,pady=5).pack(fill="x")
+        info=tk.Frame(bottom,bg=panel);info.pack(fill="x",padx=10,pady=(6,0))
+        tk.Label(info,textvariable=self.status,bg=panel,fg=ink,
+                 font=("Segoe UI",9,"bold"),anchor="w").pack(fill="x")
+        ttk.Progressbar(bottom,variable=self.pct,maximum=100,
+                        style="Green.Horizontal.TProgressbar").pack(fill="x",padx=10,pady=(5,2))
+        tk.Label(bottom,textvariable=self.metrics,bg=panel,fg=muted,
+                 font=("Segoe UI",8),anchor="w").pack(fill="x",padx=10)
+        tk.Label(bottom,text="Συνολική πρόοδος όλων των ταινιών",bg=panel,
+                 fg=ink,font=("Segoe UI",9),anchor="w").pack(fill="x",padx=10,pady=(4,0))
+        ttk.Progressbar(bottom,variable=self.allpct,maximum=100,
+                        style="Blue.Horizontal.TProgressbar").pack(fill="x",padx=10,pady=(3,4))
+        controls=tk.Frame(bottom,bg=panel);controls.pack(fill="x",padx=10,pady=(2,7))
+        tk.Label(controls,text="MP4  •  AAC / AC3  •  SRT",
+                 bg=panel,fg=muted,font=("Segoe UI",8)).pack(side="left",pady=7)
+        self.btn=ttk.Button(controls,text="▶  Έναρξη μετατροπής",style="Action.TButton",command=self.start)
+        self.btn.pack(side="right",padx=(7,0))
+        ttk.Button(controls,text="■  Διακοπή",style="Stop.TButton",command=self.stop).pack(side="right")
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
         for i,x in enumerate(self.items):
