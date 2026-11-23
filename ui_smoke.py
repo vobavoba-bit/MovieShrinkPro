@@ -7,9 +7,9 @@ app.withdraw()
 app.update_idletasks()
 assert app.preview_enabled is False
 assert app.preview_slider.winfo_class() == "TScale"
-assert app.preview_off_button.cget("state") == "disabled"
-assert app.preview_capture_button.cget("state") == "disabled"
-assert app.preview_button.cget("state") == "normal"
+assert app.preview_off_button.instate(["disabled"])
+assert app.preview_capture_button.instate(["disabled"])
+assert not app.preview_button.instate(["disabled"])
 assert app.external_subtitles == {}
 assert app.clock_string(3661) == "01:01:01"
 assert app.preview_position.get() == 0
