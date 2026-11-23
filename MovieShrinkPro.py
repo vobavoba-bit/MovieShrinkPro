@@ -210,7 +210,7 @@ class MovieShrink(tk.Tk):
         # All pixels, labels and symbols belong to the actual interactive application.
         from PIL import ImageFilter
         import math
-        banner_width=min(1280,max(950,self.winfo_screenwidth()-45))
+        banner_width=min(1280,max(950,self.winfo_screenwidth()-80))
         W,H=banner_width*2,236
         banner=Image.new("RGB",(W,H))
         pix=ImageDraw.Draw(banner)
@@ -287,7 +287,7 @@ class MovieShrink(tk.Tk):
                ("Αφαίρεση",self.remove,"remove"),
                ("Ρυθμίσεις",self.open_settings,"settings"),
                ("Πληροφορίες",self.show_about,"info"))
-        width=min(208,max(136,(available-65)//6))
+        width=min(208,max(128,(available-125)//6))
         for cap,act,icon_id in specs:
             self.metallic_toolbar_button(bar,cap,act,icon_id,width=width).pack(
                 side="left",padx=(5,0),pady=4)
@@ -448,7 +448,9 @@ class MovieShrink(tk.Tk):
         tk.Label(form,text="Μέγεθος / θέση / καθυστέρηση: δεν έχουν υλοποιηθεί ακόμη.",
                  bg=paper,fg="#6b7b87",font=("Segoe UI",8),wraplength=245,
                  justify="left").pack(fill="x",padx=8,pady=(2,4))
-        guard=tk.Frame(pinned,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
+        # On small laptop screens keep detailed options visible and scroll Guard below them.
+        settings_footer=form if self.winfo_screenheight()<850 else pinned
+        guard=tk.Frame(settings_footer,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
         guard.pack(fill="x",padx=6,pady=(4,5))
         tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffdd79",fg="#66450a",
                  font=("Segoe UI",10,"bold"),anchor="w",padx=8,pady=4).pack(fill="x")
@@ -458,7 +460,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
         tk.Label(guard,textvariable=self.quality_warning,bg="#fff1c1",fg="#78540b",
                  font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
-        buttons=tk.Frame(pinned,bg=paper);buttons.pack(fill="x",padx=6,pady=(1,3))
+        buttons=tk.Frame(settings_footer,bg=paper);buttons.pack(fill="x",padx=6,pady=(1,3))
         ttk.Button(buttons,text="⚙ Προτεινόμενες",command=self.recommended_settings).pack(
             side="left",fill="x",expand=True,padx=(0,3))
         ttk.Button(buttons,text="↺ Επαναφορά",command=self.recommended_settings).pack(
