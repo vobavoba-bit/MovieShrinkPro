@@ -39,7 +39,11 @@ class MovieShrink(tk.Tk):
         self.output=tk.StringVar(value=str(P.home()/"Videos"/"MovieShrinkPro"))
         self.pct=tk.DoubleVar();self.allpct=tk.DoubleVar();self.status=tk.StringVar(value="Έτοιμο")
         self.metrics=tk.StringVar(value="Ταχύτητα: — FPS | Χρόνος: —")
+        self.preview_stop=threading.Event();self.preview_pause=threading.Event()
+        self.preview_generation=0;self.preview_proc=None
+        self.preview_enabled=False;self.preview_thread=None
         self.ui();self.after(100,self.poll)
+        self.protocol("WM_DELETE_WINDOW",self.close_app)
     def ui(self):
         """DVD Shrink-inspired three-column interface, sized for a 13-inch display."""
         bg="#e6edf5"; dark="#071f3c"; navy="#113d6b"; blue="#2069a3"
@@ -128,7 +132,14 @@ class MovieShrink(tk.Tk):
         tk.Label(center,text="Προεπισκόπηση της αρχικής εικόνας • Όχι τελικό καρέ",
                  bg=pale,fg="#657d93",font=("Segoe UI",8),anchor="w").pack(fill="x",padx=8)
         control=tk.Frame(center,bg=pale);control.pack(fill="x",padx=6,pady=7)
-        ttk.Button(control,text="▶ Προεπισκόπηση",command=self.preview).pack(side="left")
+        self.preview_button=ttk.Button(control,text="▶ Ενεργοποίηση",command=self.toggle_preview)
+        self.preview_button.pack(side="left")
+        self.preview_pause_button=ttk.Button(control,text="⏸ Παύση",command=self.pause_preview,state="disabled")
+        self.preview_pause_button.pack(side="left",padx=4)
+        self.preview_state=tk.StringVar(value="Προεπισκόπηση: κλειστή")
+        tk.Label(center,textvariable=self.preview_state,bg=pale,fg="#244c70",
+                 font=("Segoe UI",8),anchor="w").pack(fill="x",padx=8)
+
         self.current_detail=tk.StringVar(value="Επίλεξε μία ταινία")
         tk.Label(center,textvariable=self.current_detail,wraplength=305,anchor="w",
                  bg=pale,fg="#244c70",font=("Segoe UI",8),justify="left",
@@ -196,6 +207,7 @@ class MovieShrink(tk.Tk):
         self.current_detail.set(path.name)
         sub=self.sub(path)
         self.subtitle_info.set("Υπότιτλοι: "+sub.name if sub else "Δεν βρέθηκαν εξωτερικοί SRT / ASS")
+        if self.preview_enabled:self.preview()
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
         for i,x in enumerate(self.items):
@@ -229,18 +241,103 @@ class MovieShrink(tk.Tk):
     def destination(self):
         p=filedialog.askdirectory()
         if p:self.output.set(p)
+    def toggle_preview(self):
+        if self.preview_enabled:
+            self.disable_preview()
+        else:
+            if not self.items:
+                messagebox.showinfo("Προεπισκόπηση","Πρόσθεσε πρώτα μια ταινία.")
+                return
+            self.preview_enabled=True
+            self.preview_button.configure(text="■ Απενεργοποίηση")
+            self.preview_pause_button.configure(state="normal",text="⏸ Παύση")
+            self.preview_pause.clear()
+            self.preview()
+    def pause_preview(self):
+        if not self.preview_enabled:return
+        if self.preview_pause.is_set():
+            self.preview_pause.clear()
+            self.preview_pause_button.configure(text="⏸ Παύση")
+            self.preview_state.set("Προεπισκόπηση: παίζει χωρίς ήχο")
+        else:
+            self.preview_pause.set()
+            self.preview_pause_button.configure(text="▶ Συνέχεια")
+            self.preview_state.set("Προεπισκόπηση: σε παύση")
+    def disable_preview(self):
+        self.preview_enabled=False
+        self.preview_generation+=1
+        self.preview_stop.set()
+        self.preview_pause.clear()
+        proc=self.preview_proc
+        if proc and proc.poll() is None:
+            try:proc.terminate()
+            except OSError:pass
+        self.preview_button.configure(text="▶ Ενεργοποίηση")
+        self.preview_pause_button.configure(state="disabled",text="⏸ Παύση")
+        self.preview_state.set("Προεπισκόπηση: κλειστή")
+        self.image.configure(image="",text="▶\n\nΠροεπισκόπηση απενεργοποιημένη")
+        self.pic=None
     def preview(self):
-        if not self.items:return
+        """CPU-friendly silent video playback, separately switchable from conversion."""
+        if not self.preview_enabled or not self.items:return
         index=int(self.tree.selection()[0]) if self.tree.selection() else 0
+        if index>=len(self.items):return
+        self.preview_generation+=1
+        generation=self.preview_generation
+        self.preview_stop.set()
+        old=self.preview_proc
+        if old and old.poll() is None:
+            try:old.terminate()
+            except OSError:pass
+        stop=threading.Event()
+        self.preview_stop=stop
+        self.preview_pause.clear()
+        self.preview_pause_button.configure(text="⏸ Παύση")
+        self.preview_state.set("Προεπισκόπηση: φόρτωση…")
+        path=self.items[index]["path"]
         def worker():
+            proc=None
             try:
-                with tempfile.TemporaryDirectory() as d:
-                    p=P(d)/"frame.png"
-                    result=run([binary("ffmpeg.exe"),"-v","error","-y","-ss","10","-i",str(self.items[index]["path"]),"-frames:v","1","-vf","scale=360:-2",str(p)],capture_output=True,timeout=90)
-                    if result.returncode:raise RuntimeError("Δεν διαβάζεται η προεπισκόπηση.")
-                    self.events.put(("image",base64.b64encode(p.read_bytes()).decode("ascii")))
-            except Exception as e:self.events.put(("warn",str(e)))
-        threading.Thread(target=worker,daemon=True).start()
+                ff=binary("ffmpeg.exe")
+                if not ff:raise RuntimeError("Δεν βρέθηκε FFmpeg.")
+                # 320x180, 5 fps limits CPU load on older Intel HD 4000 systems.
+                cmd=[ff,"-hide_banner","-loglevel","error","-ss","5","-i",str(path),
+                     "-an","-vf","fps=5,scale=320:180:force_original_aspect_ratio=decrease,"
+                     "pad=320:180:(ow-iw)/2:(oh-ih)/2",
+                     "-pix_fmt","rgb24","-f","rawvideo","pipe:1"]
+                proc=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
+                                      creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
+                self.preview_proc=proc
+                frame_bytes=320*180*3
+                while not stop.is_set() and generation==self.preview_generation:
+                    if self.preview_pause.is_set():
+                        time.sleep(.08)
+                        continue
+                    frame=proc.stdout.read(frame_bytes)
+                    if len(frame)!=frame_bytes:break
+                    if self.events.qsize()<8:
+                        self.events.put(("preview_frame",generation,frame))
+                    time.sleep(.19)
+            except Exception as e:
+                self.events.put(("preview_error",generation,str(e)))
+            finally:
+                if proc is not None:
+                    if proc.poll() is None:
+                        try:proc.terminate()
+                        except OSError:pass
+                    try:proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                if generation==self.preview_generation:
+                    self.events.put(("preview_end",generation))
+        self.preview_thread=threading.Thread(target=worker,daemon=True)
+        self.preview_thread.start()
+    def close_app(self):
+        if self.worker and self.worker.is_alive():
+            messagebox.showwarning("Μετατροπή σε εξέλιξη","Σταμάτησε πρώτα τη μετατροπή.")
+            return
+        if self.preview_enabled:self.disable_preview()
+        self.destroy()
     def start(self):
         if self.worker and self.worker.is_alive():return
         if not self.items:messagebox.showwarning("Προσοχή","Πρόσθεσε ταινίες.");return
@@ -315,8 +412,20 @@ class MovieShrink(tk.Tk):
         try:
             while True:
                 event=self.events.get_nowait()
-                if event[0]=="image":
-                    self.pic=tk.PhotoImage(data=event[1]);self.image.configure(image=self.pic,text="")
+                if event[0]=="preview_frame":
+                    _,generation,frame=event
+                    if generation==self.preview_generation and self.preview_enabled:
+                        from PIL import Image, ImageTk
+                        im=Image.frombytes("RGB",(320,180),frame)
+                        self.pic=ImageTk.PhotoImage(im)
+                        self.image.configure(image=self.pic,text="")
+                        if not self.preview_pause.is_set():
+                            self.preview_state.set("Προεπισκόπηση: παίζει χωρίς ήχο • 5 FPS")
+                elif event[0]=="preview_error":
+                    if event[1]==self.preview_generation:self.preview_state.set("Σφάλμα: "+event[2])
+                elif event[0]=="preview_end":
+                    if event[1]==self.preview_generation and self.preview_enabled:
+                        self.preview_state.set("Προεπισκόπηση: τέλος αποσπάσματος")
                 elif event[0]=="warn":self.status.set(event[1])
                 elif event[0]=="progress":
                     _,i,pct,fps,eta=event
