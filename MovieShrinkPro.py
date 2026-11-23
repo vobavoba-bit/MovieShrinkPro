@@ -1,5 +1,5 @@
 """MovieShrink Pro: free Windows 10 video batch converter (unencrypted sources only)."""
-import os, sys, pathlib, subprocess, json, shutil, threading, queue, tempfile, time, base64
+import os, sys, pathlib, subprocess, json, shutil, threading, queue, tempfile, time, base64, re
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 P=pathlib.Path
@@ -30,6 +30,57 @@ def self_test():
     except Exception as e:
         (P(tempfile.gettempdir())/"MovieShrinkPro-selftest.txt").write_text(str(e),encoding="utf-8")
         return 1
+def style_srt_as_ass(source, destination, size_percent=100, position="Κάτω", delay_seconds=0.0):
+    """Create an editable external ASS subtitle file with genuine style and timing.
+    Uses no codecs or third-party deps; returns the number of cues written.
+    """
+    source=P(source);destination=P(destination)
+    data=None
+    for encoding in ("utf-8-sig","utf-8","cp1253","cp1252"):
+        try:
+            data=source.read_text(encoding=encoding)
+            break
+        except UnicodeError:
+            continue
+    if data is None:raise ValueError("Δεν είναι δυνατή η ανάγνωση SRT.")
+    data=data.replace("\r\n","\n").replace("\r","\n")
+    pattern=re.compile(r"(?:^|\n)\s*(?:\d+\s*\n)?"
+        r"(?P<start>\d{2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*"
+        r"(?P<end>\d{2}:\d{2}:\d{2}[,.]\d{1,3})[^\n]*\n"
+        r"(?P<text>.*?)(?=\n\s*\n|\Z)",re.S)
+    def time_ms(raw):
+        h,m,rest=raw.split(":")
+        sec,ms=re.split(r"[,.]",rest,1)
+        return ((int(h)*60+int(m))*60+int(sec))*1000+int(ms.ljust(3,"0")[:3])
+    def ass_time(ms):
+        ms=max(0,round(ms))
+        n=ms//10
+        return f"{n//360000:01d}:{(n//6000)%60:02d}:{(n//100)%60:02d}.{n%100:02d}"
+    font_size=max(12,min(68,round(28*float(size_percent)/100)))
+    align=8 if position=="Πάνω" else 5 if position=="Κέντρο" else 2
+    lines=["[Script Info]","Title: MovieShrink Pro SRT styling",
+           "ScriptType: v4.00+","PlayResX: 1280","PlayResY: 720","WrapStyle: 0","",
+           "[V4+ Styles]",
+           "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+           f"Style: Default,Arial,{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,1,{align},30,30,28,1",
+           "","[Events]","Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
+    count=0;delay=int(float(delay_seconds)*1000)
+    for m in pattern.finditer(data):
+        begin=max(0,time_ms(m.group("start"))+delay)
+        end=max(begin+10,time_ms(m.group("end"))+delay)
+        content=m.group("text").strip()
+        if not content:continue
+        content=content.replace("\\","\\\\").replace("{",r"\{").replace("}",r"\}")
+        content=re.sub(r"<i>",r"{\\i1}",content,flags=re.I)
+        content=re.sub(r"</i>",r"{\\i0}",content,flags=re.I)
+        content=re.sub(r"<[^>]+>","",content)
+        content=content.replace("\n",r"\N")
+        lines.append(f"Dialogue: 0,{ass_time(begin)},{ass_time(end)},Default,,0,0,0,,{content}")
+        count+=1
+    if count==0:raise ValueError("Δεν εντοπίστηκαν έγκυροι χρόνοι υποτίτλων SRT.")
+    destination.write_text("\n".join(lines)+"\n",encoding="utf-8-sig")
+    return count
+
 class MovieShrink(tk.Tk):
     def __init__(self):
         super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4")
@@ -55,6 +106,9 @@ class MovieShrink(tk.Tk):
         self.preview_clock=tk.StringVar(value="00:00 / --:--")
         self.preview_seek_drag=False
         self.external_subtitles={}
+        self.subtitle_size=tk.StringVar(value="Μεσαίο (100%)")
+        self.subtitle_position=tk.StringVar(value="Κάτω")
+        self.subtitle_delay=tk.StringVar(value="0.0")
         self.current_preview_frame=None
         self.ui()
         if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
@@ -477,12 +531,25 @@ class MovieShrink(tk.Tk):
         section("♪  Ήχος")
         ttk.Combobox(form,textvariable=self.audio,state="readonly",
                      values=("AAC Stereo","Dolby Digital AC3","Αρχικός ήχος")).pack(fill="x",padx=8,pady=(2,4))
-        section("Aa  Υπότιτλοι")
-        tk.Label(form,text="Οι SRT / ASS αντιγράφονται ξεχωριστά.",
-                 bg=paper,fg="#3d6588",font=("Segoe UI",9),anchor="w").pack(fill="x",padx=8)
-        tk.Label(form,text="Μέγεθος / θέση / καθυστέρηση: δεν έχουν υλοποιηθεί ακόμη.",
-                 bg=paper,fg="#6b7b87",font=("Segoe UI",8),wraplength=245,
-                 justify="left").pack(fill="x",padx=8,pady=(2,4))
+        section("Aa  Εξωτερικοί υπότιτλοι SRT / ASS")
+        def subtitle_option(label,variable,values):
+            row=tk.Frame(form,bg=paper);row.pack(fill="x",padx=6,pady=(1,1))
+            tk.Label(row,text=label,bg=paper,fg=navy,font=("Segoe UI",9),
+                     width=10,anchor="w").pack(side="left")
+            ttk.Combobox(row,textvariable=variable,values=values,state="readonly",
+                         font=("Segoe UI",9),width=18).pack(side="left",fill="x",expand=True)
+        subtitle_option("Μέγεθος",self.subtitle_size,
+                        ("Μικρό (80%)","Μεσαίο (100%)","Μεγάλο (120%)","Πολύ μεγάλο (140%)"))
+        subtitle_option("Θέση",self.subtitle_position,("Κάτω","Κέντρο","Πάνω"))
+        delayrow=tk.Frame(form,bg=paper);delayrow.pack(fill="x",padx=6,pady=(1,3))
+        tk.Label(delayrow,text="Καθυστέρηση",bg=paper,fg=navy,
+                 font=("Segoe UI",9),width=10,anchor="w").pack(side="left")
+        ttk.Entry(delayrow,textvariable=self.subtitle_delay,width=8).pack(side="left")
+        tk.Label(delayrow,text="δευτ. (+/-)",bg=paper,fg="#496b88",
+                 font=("Segoe UI",8)).pack(side="left",padx=4)
+        tk.Label(form,text="Η αλλαγή στυλ δημιουργεί συνοδευτικό ASS από SRT.",
+                 bg=paper,fg="#3c6789",font=("Segoe UI",8),wraplength=255,
+                 justify="left").pack(fill="x",padx=7,pady=(0,2))
         # On small laptop screens keep detailed options visible and scroll Guard below them.
         settings_footer=form if self.winfo_screenheight()<850 else pinned
         guard=tk.Frame(settings_footer,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
@@ -809,7 +876,18 @@ class MovieShrink(tk.Tk):
                 if a and not outaudio:raise RuntimeError("Λείπει ο ήχος από το τελικό αρχείο.")
                 tmp.rename(out)
                 sub=self.sub(source)
-                if sub and self.copy_subtitles.get():shutil.copy2(sub,out.with_suffix(sub.suffix))
+                if sub and self.copy_subtitles.get():
+                    size_text=self.subtitle_size.get()
+                    size_pct=int(re.search(r"(\d+)%",size_text).group(1))
+                    pos=self.subtitle_position.get()
+                    try:delay=float(self.subtitle_delay.get().replace(",","."))
+                    except ValueError:raise ValueError("Η καθυστέρηση υποτίτλων πρέπει να είναι αριθμός.")
+                    if sub.suffix.lower()==".srt" and (size_pct!=100 or pos!="Κάτω" or abs(delay)>.0001):
+                        style_srt_as_ass(sub,out.with_suffix(".ass"),size_pct,pos,delay)
+                    else:
+                        if sub.suffix.lower()!=".srt" and (size_pct!=100 or pos!="Κάτω" or abs(delay)>.0001):
+                            self.events.put(("warn","Οι αλλαγές εμφάνισης εφαρμόζονται μόνο σε SRT. Το ASS διατηρήθηκε αρχικό."))
+                        shutil.copy2(sub,out.with_suffix(sub.suffix))
                 x["pct"]=100;x["state"]="Έτοιμο"
             except Exception as e:
                 x["state"]="Σφάλμα";x["error"]=str(e)
