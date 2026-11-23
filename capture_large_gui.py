@@ -21,7 +21,7 @@ class RECT(ctypes.Structure):
 rect=RECT()
 u.GetWindowRect(hwnd,ctypes.byref(rect))
 width=rect.right-rect.left;height=rect.bottom-rect.top
-src=g.GetWindowDC(hwnd);mem=g.CreateCompatibleDC(src)
+src=u.GetWindowDC(hwnd);mem=g.CreateCompatibleDC(src)
 bitmap=g.CreateCompatibleBitmap(src,width,height)
 g.SelectObject(mem,bitmap)
 ok=u.PrintWindow(hwnd,mem,2)
