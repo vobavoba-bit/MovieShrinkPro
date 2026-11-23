@@ -177,7 +177,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9,"bold"),anchor="w",padx=8,pady=5).pack(fill="x",side="bottom")
 
         # Deliberate non-autoplay low-CPU source video player.
-        frame=tk.Frame(middle,bg="#091727",height=162)
+        frame=tk.Frame(middle,bg="#091727",height=144)
         frame.pack(fill="x",padx=7,pady=(7,4));frame.pack_propagate(False)
         self.image=tk.Label(frame,text="▶\n\nΗ προεπισκόπηση είναι κλειστή",
                             bg="#091727",fg="#b4d9f6",font=("Segoe UI",11))
@@ -207,8 +207,25 @@ class MovieShrink(tk.Tk):
                         variable=self.copy_subtitles).pack(anchor="w",padx=7,pady=(1,5))
 
         # Right panel is a genuine notebook to keep every control readable on 13-inch screens.
-        tabs=ttk.Notebook(right,style="Movie.TNotebook")
-        tabs.pack(fill="both",expand=True,padx=6,pady=(4,2))
+        # Scrollable right side ensures all real settings remain reachable.
+        settings_wrap=tk.Frame(right,bg=paper)
+        settings_wrap.pack(fill="both",expand=True,padx=(4,2),pady=3)
+        settings_scroll=tk.Scrollbar(settings_wrap,orient="vertical")
+        settings_scroll.pack(side="right",fill="y")
+        settings_canvas=tk.Canvas(settings_wrap,bg=paper,highlightthickness=0,
+                                  yscrollcommand=settings_scroll.set)
+        settings_canvas.pack(side="left",fill="both",expand=True)
+        settings_scroll.configure(command=settings_canvas.yview)
+        settings_body=tk.Frame(settings_canvas,bg=paper)
+        settings_window=settings_canvas.create_window((0,0),window=settings_body,anchor="nw")
+        settings_body.bind("<Configure>",lambda e: settings_canvas.configure(
+            scrollregion=settings_canvas.bbox("all")))
+        settings_canvas.bind("<Configure>",lambda e: settings_canvas.itemconfigure(
+            settings_window,width=e.width))
+        settings_canvas.bind("<MouseWheel>",lambda e: settings_canvas.yview_scroll(
+            -int(e.delta/120),"units"))
+        tabs=ttk.Notebook(settings_body,style="Movie.TNotebook",height=312)
+        tabs.pack(fill="x",padx=3,pady=(3,2))
         picture=tk.Frame(tabs,bg=paper)
         audio_tab=tk.Frame(tabs,bg=paper)
         tabs.add(picture,text="Εικόνα & μορφή")
@@ -244,7 +261,7 @@ class MovieShrink(tk.Tk):
         ttk.Button(audio_tab,text="↺ Επαναφορά προτεινόμενων",
                    command=self.recommended_settings).pack(fill="x",padx=8,pady=8)
         # Compact, dynamic Quality Guard under tabs.
-        guard=tk.Frame(right,bg="#fff0bf",highlightbackground="#deb74b",highlightthickness=1)
+        guard=tk.Frame(settings_body,bg="#fff0bf",highlightbackground="#deb74b",highlightthickness=1)
         guard.pack(fill="x",padx=7,pady=(1,2))
         tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffe39b",fg="#634800",
                  anchor="w",font=("Segoe UI",10,"bold"),padx=8,pady=4).pack(fill="x")
@@ -256,7 +273,7 @@ class MovieShrink(tk.Tk):
         tk.Label(guard,textvariable=self.quality_warning,bg="#fff0bf",fg="#77540d",
                  font=("Segoe UI",9),anchor="w",wraplength=270,justify="left",
                  padx=8,pady=3).pack(fill="x")
-        dest=tk.Frame(right,bg="#d2e5f8",highlightbackground="#91b5d7",highlightthickness=1)
+        dest=tk.Frame(settings_body,bg="#d2e5f8",highlightbackground="#91b5d7",highlightthickness=1)
         dest.pack(fill="x",padx=7,pady=(1,3))
         tk.Label(dest,text="▣  Φάκελος αποθήκευσης",bg="#d2e5f8",fg=navy,
                  anchor="w",font=("Segoe UI",9,"bold"),padx=7,pady=4).pack(fill="x")
