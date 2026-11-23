@@ -57,7 +57,8 @@ app.withdraw()
 assert len(app._styled_button_images) >= 4
 assert not any("ΕΝΑΡΞΗ" in v or "ΔΙΑΚΟΠΗ" in v for v in button_labels)
 
-assert any("Προεπισκόπηση" in v for v in button_labels)
+assert any("Παίξε" in v for v in button_labels)
+assert any("Κλείσιμο" in v for v in button_labels)
 assert any("Προτεινόμενες" in v for v in button_labels)
 app.destroy()
 print("MovieShrinkPro compact UI smoke checks passed")
