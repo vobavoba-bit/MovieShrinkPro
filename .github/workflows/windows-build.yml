@@ -58,6 +58,7 @@ jobs:
           if ($p.HasExited) { throw "GUI exited unexpectedly with $($p.ExitCode)" }
           try {
             python capture_real_gui.py
+            python capture_large_gui.py
           } finally {
             Stop-Process -Id $p.Id -Force
           }
@@ -80,5 +81,14 @@ jobs:
         with:
           name: MovieShrinkPro_Actual_Screenshot
           path: MovieShrinkPro_Actual_Windows_Screenshot.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload large real Windows screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieShrinkPro_Real_Large_UI
+          path: MovieShrinkPro_Real_Large_Window.png
           if-no-files-found: ignore
           retention-days: 30
