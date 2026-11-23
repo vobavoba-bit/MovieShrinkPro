@@ -32,7 +32,7 @@ def self_test():
         return 1
 class MovieShrink(tk.Tk):
     def __init__(self):
-        super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4");self.geometry("1080x720")
+        super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4");self.geometry("1150x730");self.minsize(970,640)
         self.items=[];self.events=queue.Queue();self.worker=None;self.process=None;self.stopflag=False
         self.quality=tk.StringVar(value="Ισορροπημένη");self.size=tk.StringVar(value="1080p")
         self.audio=tk.StringVar(value="AAC Stereo");self.format=tk.StringVar(value="MP4")
@@ -43,6 +43,8 @@ class MovieShrink(tk.Tk):
         self.preview_generation=0;self.preview_proc=None
         self.preview_enabled=False;self.preview_thread=None
         self.ui();self.after(100,self.poll)
+        for v in (self.quality,self.size,self.format,self.audio):v.trace_add("write",self.update_quality_hint)
+        self.update_quality_hint()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
     def ui(self):
         """DVD Shrink-inspired three-column interface, sized for a 13-inch display."""
@@ -51,31 +53,31 @@ class MovieShrink(tk.Tk):
         self.configure(bg=bg)
         style=ttk.Style(self);style.theme_use("clam")
         style.configure("TFrame",background=bg)
-        style.configure("TLabel",background=bg,foreground=text,font=("Segoe UI",9))
-        style.configure("TButton",font=("Segoe UI",9,"bold"),padding=(8,6),background="#edf5fd",foreground=navy,bordercolor="#a5bed6")
+        style.configure("TLabel",background=bg,foreground=text,font=("Segoe UI",10))
+        style.configure("TButton",font=("Segoe UI",10,"bold"),padding=(10,7),background="#edf5fd",foreground=navy,bordercolor="#a5bed6")
         style.map("TButton",background=[("active","#d8eaff")])
-        style.configure("TCombobox",font=("Segoe UI",9),padding=3)
-        style.configure("Treeview",font=("Segoe UI",8),rowheight=26,background="white",fieldbackground="white",foreground=text)
+        style.configure("TCombobox",font=("Segoe UI",10),padding=4)
+        style.configure("Treeview",font=("Segoe UI",10),rowheight=29,background="white",fieldbackground="white",foreground=text)
         style.map("Treeview",background=[("selected","#c4e0ff")],foreground=[("selected","#143452")])
-        style.configure("Treeview.Heading",background="#d8e7f6",foreground=navy,font=("Segoe UI",8,"bold"),padding=6)
+        style.configure("Treeview.Heading",background="#d8e7f6",foreground=navy,font=("Segoe UI",9,"bold"),padding=7)
         style.configure("Green.Horizontal.TProgressbar",background="#18ad44",troughcolor="#dce6f1",thickness=12)
         style.configure("Blue.Horizontal.TProgressbar",background="#168be2",troughcolor="#dce6f1",thickness=10)
 
-        header=tk.Frame(self,bg=dark,height=113)
+        header=tk.Frame(self,bg=dark,height=95)
         header.pack(fill="x");header.pack_propagate(False)
         try:
             from PIL import Image,ImageTk
             base=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
             logo=Image.open(base/"assets"/"movieshrink_logo.jpg")
-            self.brand_image=ImageTk.PhotoImage(logo.resize((93,93),Image.Resampling.LANCZOS))
-            tk.Label(header,image=self.brand_image,bg=dark).pack(side="left",padx=(10,8),pady=9)
+            self.brand_image=ImageTk.PhotoImage(logo.resize((75,75),Image.Resampling.LANCZOS))
+            tk.Label(header,image=self.brand_image,bg=dark).pack(side="left",padx=(9,8),pady=7)
         except Exception:
             tk.Label(header,text="◉",font=("Segoe UI",42),fg="#4dc6ff",bg=dark).pack(side="left",padx=14)
-        brand=tk.Frame(header,bg=dark);brand.pack(side="left",fill="both",expand=True,pady=15)
+        brand=tk.Frame(header,bg=dark);brand.pack(side="left",fill="both",expand=True,pady=9)
         title_line=tk.Frame(brand,bg=dark);title_line.pack(anchor="w")
-        tk.Label(title_line,text="MovieShrink",font=("Segoe UI",25,"bold","italic"),
+        tk.Label(title_line,text="MovieShrink",font=("Segoe UI",23,"bold","italic"),
                  fg="#edf7ff",bg=dark).pack(side="left")
-        tk.Label(title_line,text=" Pro",font=("Segoe UI",25,"bold","italic"),
+        tk.Label(title_line,text=" Pro",font=("Segoe UI",23,"bold","italic"),
                  fg=gold,bg=dark).pack(side="left")
         tk.Label(brand,text="DVD / USB / MP4    •    Μετατροπή σε Full HD 1080p & 4K",
                  font=("Segoe UI",9,"bold"),fg="#9ad2ff",bg=dark).pack(anchor="w")
@@ -96,22 +98,22 @@ class MovieShrink(tk.Tk):
                   activebackground="#27a64e",activeforeground="white",
                   font=("Segoe UI",10,"bold"),relief="raised",bd=2,padx=17).pack(side="right",padx=10,pady=5)
 
-        content=tk.Frame(self,bg=bg);content.pack(fill="both",expand=True,padx=7,pady=(8,4))
-        content.grid_columnconfigure(0,weight=4,minsize=280)
-        content.grid_columnconfigure(1,weight=4,minsize=280)
-        content.grid_columnconfigure(2,weight=3,minsize=255)
+        content=tk.Frame(self,bg=bg);content.pack(fill="both",expand=True,padx=6,pady=(6,3))
+        content.grid_columnconfigure(0,weight=4,minsize=285)
+        content.grid_columnconfigure(1,weight=4,minsize=300)
+        content.grid_columnconfigure(2,weight=3,minsize=280)
         content.grid_rowconfigure(0,weight=1)
 
         def card(parent,column,title,weight=1):
             outer=tk.Frame(parent,bg=pale,highlightbackground=edge,highlightthickness=1)
             outer.grid(row=0,column=column,sticky="nsew",padx=4)
             tk.Label(outer,text=title,bg=navy,fg="white",
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=8,pady=6).pack(fill="x")
+                     font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=6).pack(fill="x")
             return outer
 
         left=card(content,0,"▤  Ουρά επεξεργασίας")
-        table=tk.Frame(left,bg="white");table.pack(fill="both",expand=True,padx=5,pady=6)
-        self.tree=ttk.Treeview(table,columns=("file","sub","pct","state"),show="headings",selectmode="extended")
+        table=tk.Frame(left,bg="#edf3fa");table.pack(fill="both",expand=True,padx=5,pady=(5,3))
+        self.tree=ttk.Treeview(table,columns=("file","sub","pct","state"),show="headings",selectmode="extended",height=9)
         for key,label,width in (("file","Ταινία",160),("sub","SRT",35),
                                 ("pct","%",35),("state","Κατάσταση",79)):
             self.tree.heading(key,text=label);self.tree.column(key,width=width,stretch=(key=="file"),minwidth=30)
@@ -119,18 +121,20 @@ class MovieShrink(tk.Tk):
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right",fill="y")
         self.tree.pack(side="left",fill="both",expand=True)
+        self.tree.tag_configure("odd",background="#eef5fd")
+        self.tree.tag_configure("even",background="#ffffff")
         self.tree.bind("<<TreeviewSelect>>",self._selected)
         self.queue_summary=tk.StringVar(value="0 ταινίες σε αναμονή")
         tk.Label(left,textvariable=self.queue_summary,bg=pale,fg="#46637f",anchor="w",
                  font=("Segoe UI",9),padx=7,pady=6).pack(fill="x")
 
         center=card(content,1,"▣  Προεπισκόπηση ταινίας")
-        view=tk.Frame(center,bg="#071524");view.pack(fill="both",expand=True,padx=6,pady=(8,5))
+        view=tk.Frame(center,bg="#071524",height=215);view.pack(fill="x",padx=6,pady=(6,3));view.pack_propagate(False)
         self.image=tk.Label(view,bg="#071524",fg="#c9deef",text="▶\n\nΠροεπισκόπηση επιλεγμένης ταινίας",
                             font=("Segoe UI",11),justify="center")
         self.image.pack(fill="both",expand=True,padx=3,pady=3)
         tk.Label(center,text="Προεπισκόπηση της αρχικής εικόνας • Όχι τελικό καρέ",
-                 bg=pale,fg="#657d93",font=("Segoe UI",8),anchor="w").pack(fill="x",padx=8)
+                 bg=pale,fg="#657d93",font=("Segoe UI",9),anchor="w").pack(fill="x",padx=8)
         control=tk.Frame(center,bg=pale);control.pack(fill="x",padx=6,pady=7)
         self.preview_button=ttk.Button(control,text="▶ Ενεργοποίηση",command=self.toggle_preview)
         self.preview_button.pack(side="left")
@@ -142,39 +146,49 @@ class MovieShrink(tk.Tk):
 
         self.current_detail=tk.StringVar(value="Επίλεξε μία ταινία")
         tk.Label(center,textvariable=self.current_detail,wraplength=305,anchor="w",
-                 bg=pale,fg="#244c70",font=("Segoe UI",8),justify="left",
-                 padx=7,pady=7).pack(fill="x")
+                 bg=pale,fg="#244c70",font=("Segoe UI",9),justify="left",
+                 padx=7,pady=3).pack(fill="x")
         subs=tk.Frame(center,bg="#dcecff",highlightbackground="#bad4ee",highlightthickness=1)
-        subs.pack(fill="x",padx=6,pady=(5,8))
+        subs.pack(fill="x",padx=6,pady=(2,5))
         tk.Label(subs,text="Aa  Εξωτερικοί υπότιτλοι",font=("Segoe UI",10,"bold"),
                  bg="#dcecff",fg=navy,anchor="w",padx=7,pady=5).pack(fill="x")
         self.subtitle_info=tk.StringVar(value="SRT / ASS δίπλα στην ταινία · Επιλέξιμοι στον player")
         tk.Label(subs,textvariable=self.subtitle_info,bg="#dcecff",fg="#2d557e",
-                 font=("Segoe UI",8),anchor="w",wraplength=320,padx=7,pady=4).pack(fill="x")
+                 font=("Segoe UI",9),anchor="w",wraplength=320,padx=7,pady=3).pack(fill="x")
 
         right=card(content,2,"⚙  Ρυθμίσεις εξόδου")
-        options=tk.Frame(right,bg=pale);options.pack(fill="x",padx=8,pady=5)
+        options=tk.Frame(right,bg=pale);options.pack(fill="x",padx=8,pady=(4,3))
         def group(title,var,values):
-            tk.Label(options,text=title,bg=pale,fg=navy,font=("Segoe UI",9,"bold"),
-                     anchor="w",pady=5).pack(fill="x")
-            ttk.Combobox(options,textvariable=var,values=values,state="readonly").pack(fill="x")
-        group("Προφίλ ποιότητας",self.quality,["Μέγιστη","Ισορροπημένη","Μικρότερο αρχείο"])
-        group("Ανάλυση εξόδου",self.size,["Πρωτότυπη","1080p","4K"])
-        group("Μορφή εξόδου",self.format,["MP4","MKV"])
-        group("Ήχος • Stereo / Dolby 5.1",self.audio,["AAC Stereo","Dolby Digital AC3","Αρχικός ήχος"])
-        self.quality_warning=tk.StringVar(value="⚠ Το upscaling δεν δημιουργεί πραγματική λεπτομέρεια.")
-        tk.Label(options,textvariable=self.quality_warning,bg="#fff0c5",
-                 fg="#775000",font=("Segoe UI",8),wraplength=240,justify="left",
-                 padx=6,pady=7).pack(fill="x",pady=(10,4))
-        tk.Label(options,text="Smart Quality Guard",bg=pale,fg="#1e699f",
-                 font=("Segoe UI",9,"bold"),anchor="w").pack(fill="x",pady=(3,0))
-        tk.Label(options,text="Προειδοποιήσεις πριν από απώλεια ποιότητας ή αλλαγή ήχου.",
-                 bg=pale,fg="#57738b",font=("Segoe UI",8),wraplength=240,justify="left").pack(fill="x",pady=(3,8))
-
+            row=tk.Frame(options,bg=pale)
+            row.pack(fill="x",pady=3)
+            tk.Label(row,text=title,bg=pale,fg=navy,font=("Segoe UI",9,"bold"),
+                     anchor="w",width=14).pack(side="left")
+            ttk.Combobox(row,textvariable=var,values=values,state="readonly",
+                         font=("Segoe UI",10),width=15).pack(side="left",fill="x",expand=True)
+        group("Ποιότητα",self.quality,["Μέγιστη","Ισορροπημένη","Μικρότερο αρχείο"])
+        group("Ανάλυση",self.size,["Πρωτότυπη","1080p","4K"])
+        group("Μορφή",self.format,["MP4","MKV"])
+        group("Ήχος",self.audio,["AAC Stereo","Dolby Digital AC3","Αρχικός ήχος"])
+        self.quality_description=tk.StringVar(value="")
+        tk.Label(options,textvariable=self.quality_description,bg="#e6f1fc",fg="#205780",
+                 font=("Segoe UI",9),wraplength=270,justify="left",
+                 padx=7,pady=5).pack(fill="x",pady=(5,4))
+        guard=tk.Frame(options,bg="#fff0c5",highlightbackground="#e4c36d",highlightthickness=1)
+        guard.pack(fill="x",pady=(3,5))
+        tk.Label(guard,text="⚠ Smart Quality Guard",bg="#fff0c5",fg="#755200",
+                 font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=3).pack(fill="x")
+        self.quality_warning=tk.StringVar(value="")
+        tk.Label(guard,textvariable=self.quality_warning,bg="#fff0c5",fg="#755200",
+                 font=("Segoe UI",9),wraplength=265,justify="left",padx=7,pady=3).pack(fill="x")
+        actionrow=tk.Frame(options,bg=pale);actionrow.pack(fill="x",pady=(0,4))
+        ttk.Button(actionrow,text="✓ Προτεινόμενες",command=self.recommended_settings).pack(side="left")
+        ttk.Button(actionrow,text="↺ Επαναφορά",command=self.recommended_settings).pack(side="left",padx=4)
+        # Subtitle playback options remain in the central subtitle panel.
+        # Do not show size/position/delay controls until they are wired to encoding.
         dest=tk.Frame(right,bg="#e5f0fb",highlightbackground=edge,highlightthickness=1)
-        dest.pack(fill="x",padx=8,pady=(0,5))
-        tk.Label(dest,text="▣  Προορισμός αρχείου",font=("Segoe UI",9,"bold"),
-                 bg="#e5f0fb",fg=navy,anchor="w",padx=6,pady=5).pack(fill="x")
+        dest.pack(fill="x",padx=8,pady=(3,5))
+        tk.Label(dest,text="▣  Προορισμός αρχείου",font=("Segoe UI",10,"bold"),
+                 bg="#e5f0fb",fg=navy,anchor="w",padx=6,pady=4).pack(fill="x")
         d=tk.Frame(dest,bg="#e5f0fb");d.pack(fill="x",padx=5,pady=(0,6))
         ttk.Entry(d,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,4))
         ttk.Button(d,text="…",command=self.destination,width=2).pack(side="right")
@@ -197,6 +211,27 @@ class MovieShrink(tk.Tk):
                   activebackground="#a22a33",font=("Segoe UI",9,"bold"),padx=12,pady=5).pack(side="left",pady=3)
         tk.Label(bottom,textvariable=self.metrics,bg="#f7fbff",fg="#345878",
                  font=("Segoe UI",9),anchor="w").pack(fill="x",padx=9,pady=(0,5))
+    def recommended_settings(self):
+        self.quality.set("Ισορροπημένη")
+        self.size.set("1080p")
+        self.format.set("MP4")
+        self.audio.set("AAC Stereo")
+    def update_quality_hint(self,*_):
+        if not hasattr(self,"quality_description"):return
+        quality_text={"Μέγιστη":"Πιο καθαρή εικόνα • μεγαλύτερο αρχείο.",
+                      "Ισορροπημένη":"Προτεινόμενο προφίλ • καλή ισορροπία εικόνας και μεγέθους.",
+                      "Μικρότερο αρχείο":"Μικρότερο μέγεθος • πιθανή απώλεια λεπτομέρειας."}
+        self.quality_description.set(quality_text.get(self.quality.get(),""))
+        warnings=[]
+        if self.size.get()=="4K":
+            warnings.append("Το 4K απαιτεί πολύ χρόνο και δεν αυξάνει την πραγματική λεπτομέρεια.")
+        elif self.size.get()=="1080p":
+            warnings.append("Αν η πηγή είναι 720p, η αναβάθμιση σε 1080p δεν προσθέτει λεπτομέρεια.")
+        if self.audio.get()=="Dolby Digital AC3":
+            warnings.append("Το AC3 δεν δημιουργεί αυθεντικό 5.1 από stereo.")
+        if self.format.get()=="MP4" and self.audio.get()=="Αρχικός ήχος":
+            warnings.append("Ο αρχικός ήχος ενδέχεται να μην είναι συμβατός με MP4.")
+        self.quality_warning.set(" ".join(warnings) if warnings else "Οι ρυθμίσεις είναι κατάλληλες για τυπική αναπαραγωγή.")
     def _selected(self,event=None):
         if not self.items:return
         selected=self.tree.selection()
@@ -211,7 +246,7 @@ class MovieShrink(tk.Tk):
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
         for i,x in enumerate(self.items):
-            self.tree.insert("","end",iid=str(i),values=(x["path"].name,"Ναι" if self.sub(x["path"]) else "—",f'{x["pct"]:.0f}%',x["state"]))
+            self.tree.insert("","end",iid=str(i),tags=("odd" if i%2 else "even",),values=(x["path"].name,"Ναι" if self.sub(x["path"]) else "—",f'{x["pct"]:.0f}%',x["state"]))
         if self.items:self.allpct.set(sum(x["pct"] for x in self.items)/len(self.items))
         if hasattr(self,"queue_summary"):self.queue_summary.set(f"{len(self.items)} ταινίες  ·  {sum(x['state']=='Έτοιμο' for x in self.items)} ολοκληρωμένες")
     def sub(self,p):
