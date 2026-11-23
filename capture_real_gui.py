@@ -14,7 +14,7 @@ for _ in range(30):
     time.sleep(0.5)
 if not hwnd:raise RuntimeError("Real MovieShrink Pro window not found")
 user32.ShowWindow(hwnd,9)
-user32.MoveWindow(hwnd,60,40,1100,690,True)
+user32.MoveWindow(hwnd,8,8,970,640,True)
 user32.SetForegroundWindow(hwnd)
 time.sleep(2)
 class RECT(ctypes.Structure):
