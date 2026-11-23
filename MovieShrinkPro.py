@@ -34,8 +34,8 @@ class MovieShrink(tk.Tk):
     def __init__(self):
         super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4")
         screen_w=self.winfo_screenwidth();screen_h=self.winfo_screenheight()
-        window_w=min(1280,max(950,screen_w-45))
-        window_h=min(800,max(610,screen_h-85))
+        window_w=min(1480,max(950,screen_w-26))
+        window_h=min(920,max(610,screen_h-64))
         self.geometry(f"{window_w}x{window_h}+12+12")
         self.minsize(950,610)
         self.items=[];self.events=queue.Queue();self.worker=None;self.process=None;self.stopflag=False
@@ -190,7 +190,7 @@ class MovieShrink(tk.Tk):
         style.configure("TButton",font=("Segoe UI",9,"bold"),padding=(7,5),
                         background="#d2e7fc",foreground="#123f6e",bordercolor="#7eabd1")
         style.map("TButton",background=[("active","#a9d6fc")])
-        style.configure("Treeview",font=("Segoe UI",9),rowheight=29,
+        style.configure("Treeview",font=("Segoe UI",9),rowheight=25,
                         background="#f9fcff",fieldbackground="#f9fcff",foreground=ink)
         style.configure("Treeview.Heading",font=("Segoe UI",9,"bold"),background="#c0d8f3",
                         foreground=navy,padding=6)
@@ -210,7 +210,7 @@ class MovieShrink(tk.Tk):
         # All pixels, labels and symbols belong to the actual interactive application.
         from PIL import ImageFilter
         import math
-        banner_width=min(1280,max(950,self.winfo_screenwidth()-80))
+        banner_width=min(1480,max(950,self.winfo_screenwidth()-26))
         W,H=banner_width*2,236
         banner=Image.new("RGB",(W,H))
         pix=ImageDraw.Draw(banner)
@@ -273,11 +273,11 @@ class MovieShrink(tk.Tk):
             tx=rx+(bw-(bbox[2]-bbox[0]))/2
             bd.text((tx,83),label,font=badgefont,fill="#ffd75c" if is_gold else "#ffffff")
             rx+=bw+12
-        self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,118),Image.Resampling.LANCZOS))
-        head=tk.Frame(self,bg="#071a35",height=118)
+        self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,104),Image.Resampling.LANCZOS))
+        head=tk.Frame(self,bg="#071a35",height=104)
         head.pack(side="top",fill="x");head.pack_propagate(False)
         tk.Label(head,image=self.header_img,bg="#071a35",bd=0,anchor="nw").pack(fill="both",expand=True)
-        bar=tk.Frame(self,bg="#c7daee",height=54,highlightbackground="#79a5c9",highlightthickness=1)
+        bar=tk.Frame(self,bg="#c7daee",height=49,highlightbackground="#79a5c9",highlightthickness=1)
         bar.pack(side="top",fill="x");bar.pack_propagate(False)
         available=self.winfo_screenwidth()
         roomy=available>=1200
@@ -287,7 +287,7 @@ class MovieShrink(tk.Tk):
                ("Αφαίρεση",self.remove,"remove"),
                ("Ρυθμίσεις",self.open_settings,"settings"),
                ("Πληροφορίες",self.show_about,"info"))
-        width=min(208,max(128,(available-125)//6))
+        width=min(210,max(128,(available-76)//6))
         for cap,act,icon_id in specs:
             self.metallic_toolbar_button(bar,cap,act,icon_id,width=width).pack(
                 side="left",padx=(5,0),pady=4)
@@ -298,15 +298,15 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=4).pack(fill="x")
         inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(4,0))
         # Single pair of main actions: vertical, right-aligned, with no duplicates.
-        controls=tk.Frame(inner,bg="#e6f0fc",highlightbackground="#a5bdd4",
+        controls=tk.Frame(inner,bg="#d8e8fb",highlightbackground="#8eb0d6",
                           highlightthickness=1,padx=7,pady=5)
-        controls.pack(side="right",padx=(10,0),pady=(0,2))
+        controls.pack(side="right",padx=(10,0),pady=(0,1))
         self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
-                                    ("#62eb77","#08772e","#075322"),width=184,height=44)
-        self.btn.pack(side="top",pady=(0,6),anchor="center")
+                                    ("#62eb77","#08772e","#075322"),width=184,height=41)
+        self.btn.pack(side="top",pady=(0,4),anchor="center")
         self.stop_btn=self.glossy_button(controls,"ΔΙΑΚΟΠΗ",self.stop,
-                                         ("#ff8888","#b00920","#790719"),width=184,height=44)
+                                         ("#ff8888","#b00920","#790719"),width=184,height=41)
         self.stop_btn.pack(side="top",anchor="center")
         bframe=tk.Frame(inner,bg=white);bframe.pack(side="left",fill="both",expand=True)
         for var,style_name,percentage,percentage_text in (
@@ -319,27 +319,45 @@ class MovieShrink(tk.Tk):
                      font=("Segoe UI",12,"bold"),width=7,anchor="e").pack(side="right",padx=(8,0))
             ttk.Progressbar(barrow,variable=percentage,maximum=100,
                             style=style_name).pack(side="left",fill="x",expand=True,pady=3)
-        tk.Label(bottom,textvariable=self.status,bg=white,fg="#23547e",
-                 font=("Segoe UI",9),anchor="w").pack(fill="x",padx=10)
-        tk.Label(bottom,textvariable=self.metrics,bg=white,fg="#23547e",
-                 font=("Segoe UI",9,"bold"),anchor="w").pack(fill="x",padx=10,pady=(0,3))
+        foot=tk.Frame(bottom,bg=white);foot.pack(fill="x",padx=10,pady=(1,2))
+        tk.Label(foot,textvariable=self.status,bg=white,fg="#23547e",
+                 font=("Segoe UI",9),anchor="w").pack(side="left")
+        tk.Label(foot,textvariable=self.metrics,bg=white,fg="#23547e",
+                 font=("Segoe UI",9,"bold"),anchor="e").pack(side="right")
         # Three true interactive panels, preserving functionality.
         main=tk.Frame(self,bg="#bfcfe0")
-        main.pack(side="top",fill="both",expand=True,padx=6,pady=(6,3))
-        for col,wt,minsize in ((0,36,280),(1,34,275),(2,30,270)):
+        main.pack(side="top",fill="both",expand=True,padx=5,pady=(5,3))
+        for col,wt,minsize in ((0,35,290),(1,34,280),(2,31,275)):
             main.grid_columnconfigure(col,weight=wt,minsize=minsize)
         main.grid_rowconfigure(0,weight=1)
         def panel(index,title):
-            out=tk.Frame(main,bg=paper,highlightbackground="#5d94c0",highlightthickness=2)
+            out=tk.Frame(main,bg=paper,highlightbackground="#4b87bf",highlightthickness=2)
             out.grid(row=0,column=index,sticky="nsew",padx=3)
-            tk.Label(out,text=title,bg="#0b467f",fg="white",font=("Segoe UI",10,"bold"),
-                     anchor="w",padx=8,pady=5).pack(fill="x")
+            # Fully rendered glossy dark-blue section bar.
+            g=Image.new("RGB",(920,60))
+            dr=ImageDraw.Draw(g)
+            for y in range(60):
+                t=y/59
+                if t<.42:
+                    col=(17+int(13*t),101+int(44*t),180+int(35*t))
+                else:
+                    col=(7+int(4*t),50+int(20*t),107+int(11*t))
+                dr.line((0,y,920,y),fill=col)
+            dr.line((0,2,920,2),fill="#b6e5ff",width=2)
+            dr.line((0,57,920,57),fill="#0c3762",width=3)
+            pic=ImageTk.PhotoImage(g.resize((460,30),Image.Resampling.LANCZOS))
+            if not hasattr(self,"_panel_header_images"):self._panel_header_images=[]
+            self._panel_header_images.append(pic)
+            h=tk.Frame(out,bg="#0c457e",height=30);h.pack(fill="x");h.pack_propagate(False)
+            tk.Label(h,image=pic,bg="#0b467f",bd=0).place(x=0,y=0,relwidth=1,relheight=1)
+            tk.Label(h,text=title,bg="#104c89",fg="white",
+                     font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=2).place(x=8,y=4)
             return out
         left=panel(0,"▣   Ουρά επεξεργασίας")
         center=panel(1,"▣   Ζωντανή προεπισκόπηση")
         right=panel(2,"⚙   Ρυθμίσεις εξόδου")
         # Queue includes duration and source dimensions, populated asynchronously.
-        lst=tk.Frame(left,bg=paper);lst.pack(fill="both",expand=True,padx=4,pady=(4,0))
+        lst=tk.Frame(left,bg=paper);lst.pack(fill="both",expand=True,padx=3,pady=(3,0))
         cols=("file","duration","resolution","pct","state")
         self.tree=ttk.Treeview(lst,columns=cols,show="headings",selectmode="extended",height=8)
         for key,label,w in (("file","Όνομα αρχείου",155),("duration","Διάρκεια",65),
@@ -359,12 +377,12 @@ class MovieShrink(tk.Tk):
         # Center preview + explicit enable/pause/off; subtitle copy is a real setting.
         preview_box=tk.Frame(center,bg="#071525",height=195)
         self.preview_box=preview_box
-        preview_box.pack(fill="x",padx=5,pady=(5,3));preview_box.pack_propagate(False)
+        preview_box.pack(fill="x",padx=5,pady=(4,1));preview_box.pack_propagate(False)
         self.image=tk.Label(preview_box,text="▶\nΠροεπισκόπηση απενεργοποιημένη",
                             bg="#071525",fg="#bcd9f2",font=("Segoe UI",10))
         self.image.pack(fill="both",expand=True,padx=3,pady=3)
         transport=tk.Frame(center,bg="#112d48",height=33)
-        transport.pack(fill="x",padx=5,pady=(0,3))
+        transport.pack(fill="x",padx=5,pady=(0,2))
         tk.Label(transport,textvariable=self.preview_clock,bg="#112d48",fg="#e2f2ff",
                  font=("Segoe UI",8,"bold")).pack(side="left",padx=(6,3))
         self.preview_slider=ttk.Scale(transport,from_=0,to=100,
@@ -374,7 +392,7 @@ class MovieShrink(tk.Tk):
         self.preview_slider.bind("<ButtonRelease-1>",self.preview_seek_end)
         tk.Label(transport,text="🔇",bg="#112d48",fg="#e2f2ff",
                  font=("Segoe UI",10)).pack(side="right",padx=5)
-        pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=5,pady=(1,2))
+        pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=5,pady=(1,1))
         self.preview_button=ttk.Button(pc,text="▶ Προεπισκόπηση",command=self.toggle_preview)
         self.preview_button.pack(side="left",padx=(0,4))
         self.preview_pause_button=ttk.Button(pc,text="⏸ Παύση",command=self.pause_preview,state="disabled")
@@ -387,7 +405,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9,"bold"),anchor="w",wraplength=295,
                  justify="left",padx=7,pady=3).pack(fill="x")
         subs=tk.Frame(center,bg="#d3e7fa",highlightbackground="#8eb9dd",highlightthickness=1)
-        subs.pack(fill="x",padx=5,pady=(3,4))
+        subs.pack(fill="x",padx=5,pady=(2,3))
         tk.Label(subs,text="Aa   Εξωτερικοί υπότιτλοι SRT / ASS",bg="#b6d4f1",fg=navy,
                  font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=4).pack(fill="x")
         self.subtitle_info=tk.StringVar(value="Αυτόματη ανίχνευση SRT / ASS")
@@ -413,7 +431,7 @@ class MovieShrink(tk.Tk):
         canvas.bind("<MouseWheel>",lambda e:canvas.yview_scroll(-int(e.delta/120),"units"))
         def section(title):
             tk.Label(form,text=title,bg="#b8d7f3",fg=navy,
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=3).pack(fill="x",pady=(4,1))
+                     font=("Segoe UI",10,"bold"),anchor="w",padx=6,pady=2).pack(fill="x",pady=(2,1))
         def choose(var,entries):
             rows=[]
             for value,label in entries:
@@ -421,7 +439,7 @@ class MovieShrink(tk.Tk):
                                      bg=paper,fg=ink,activebackground="#a6d6fc",
                                      selectcolor="#daedff",anchor="w",justify="left",
                                      font=("Segoe UI",9),borderwidth=0,
-                                     highlightthickness=0,padx=6,pady=1)
+                                     highlightthickness=0,padx=6,pady=0)
                 button.pack(fill="x",padx=8,pady=0)
                 rows.append((value,button))
             def refresh_choices(*_):
