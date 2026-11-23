@@ -32,7 +32,12 @@ def self_test():
         return 1
 class MovieShrink(tk.Tk):
     def __init__(self):
-        super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4");self.geometry("1150x730");self.minsize(970,640)
+        super().__init__();self.title("MovieShrink Pro — DVD / USB / MP4")
+        screen_w=self.winfo_screenwidth();screen_h=self.winfo_screenheight()
+        window_w=min(1280,max(950,screen_w-45))
+        window_h=min(800,max(610,screen_h-85))
+        self.geometry(f"{window_w}x{window_h}+12+12")
+        self.minsize(950,610)
         self.items=[];self.events=queue.Queue();self.worker=None;self.process=None;self.stopflag=False
         self.quality=tk.StringVar(value="Ισορροπημένη");self.size=tk.StringVar(value="1080p")
         self.audio=tk.StringVar(value="AAC Stereo");self.format=tk.StringVar(value="MP4")
