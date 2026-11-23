@@ -771,6 +771,11 @@ class MovieShrink(tk.Tk):
             try:
                 ff=binary("ffmpeg.exe")
                 if not ff:raise RuntimeError("Δεν βρέθηκε FFmpeg.")
+                if not self.preview_duration:
+                    try:
+                        duration,_,_,_=probe(path)
+                        self.events.put(("preview_duration",generation,duration))
+                    except Exception:pass
                 # 320x180, 5 fps limits CPU load on older Intel HD 4000 systems.
                 cmd=[ff,"-hide_banner","-loglevel","error","-ss",str(start_time),"-i",str(path),
                      "-an","-vf","fps=5,scale=320:180:force_original_aspect_ratio=decrease,"
@@ -900,13 +905,20 @@ class MovieShrink(tk.Tk):
         try:
             while True:
                 event=self.events.get_nowait()
-                if event[0]=="preview_frame":
+                if event[0]=="preview_duration":
+                    _,generation,duration=event
+                    if generation==self.preview_generation and self.preview_enabled:
+                        self.preview_duration=duration
+                elif event[0]=="preview_frame":
                     _,generation,frame,position=event
                     if generation==self.preview_generation and self.preview_enabled:
                         from PIL import Image, ImageTk
                         im=Image.frombytes("RGB",(320,180),frame)
                         self.current_preview_frame=im
-                        self.pic=ImageTk.PhotoImage(im)
+                        from PIL import ImageOps
+                        bounds=(max(32,self.image.winfo_width()-4),max(32,self.image.winfo_height()-4))
+                        fitted=ImageOps.contain(im,bounds,Image.Resampling.LANCZOS)
+                        self.pic=ImageTk.PhotoImage(fitted)
                         self.image.configure(image=self.pic,text="")
                         self.preview_capture_button.configure(state="normal")
                         if not self.preview_seek_drag and self.preview_duration>0:
@@ -945,4 +957,8 @@ class MovieShrink(tk.Tk):
         self.after(100,self.poll)
 if __name__=="__main__":
     if "--self-test" in sys.argv:sys.exit(self_test())
-    MovieShrink().mainloop()
+    app=MovieShrink()
+    if os.name=="nt":
+        try:app.state("zoomed")
+        except tk.TclError:pass
+    app.mainloop()
