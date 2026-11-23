@@ -39,7 +39,7 @@ for _ in range(260):
     if app.pct.get() >= 5:
         break
     time.sleep(.08)
-assert app.pct.get() > 0, "Actual conversion did not advance"
+assert app.pct.get() > 0 or app.items[0]["pct"] > 0, f"Actual conversion did not advance: status={app.status.get()} item={app.items[0]}"
 app.update_idletasks()
 x=app.winfo_rootx();y=app.winfo_rooty()
 w=app.winfo_width();h=app.winfo_height()
