@@ -297,13 +297,17 @@ class MovieShrink(tk.Tk):
         tk.Label(bottom,text="▥   ΠΡΟΟΔΟΣ ΜΕΤΑΤΡΟΠΗΣ",bg="#0c477d",fg="white",
                  font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=4).pack(fill="x")
         inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(4,0))
-        controls=tk.Frame(inner,bg=white);controls.pack(side="right",padx=(12,0),pady=7)
+        # Single pair of main actions: vertical, right-aligned, with no duplicates.
+        controls=tk.Frame(inner,bg="#e6f0fc",highlightbackground="#a5bdd4",
+                          highlightthickness=1,padx=7,pady=5)
+        controls.pack(side="right",padx=(10,0),pady=(0,2))
+        self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
-                                    ("#62eb77","#08772e","#075322"),width=152,height=50)
-        self.btn.pack(side="left",padx=(0,7))
+                                    ("#62eb77","#08772e","#075322"),width=184,height=44)
+        self.btn.pack(side="top",pady=(0,6),anchor="center")
         self.stop_btn=self.glossy_button(controls,"ΔΙΑΚΟΠΗ",self.stop,
-                                         ("#ff8888","#b00920","#790719"),width=152,height=50)
-        self.stop_btn.pack(side="left")
+                                         ("#ff8888","#b00920","#790719"),width=184,height=44)
+        self.stop_btn.pack(side="top",anchor="center")
         bframe=tk.Frame(inner,bg=white);bframe.pack(side="left",fill="both",expand=True)
         for var,style_name,percentage,percentage_text in (
               (self.source_progress_label,"Green.Horizontal.TProgressbar",self.pct,self.current_percent),
