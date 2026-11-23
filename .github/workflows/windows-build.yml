@@ -1,0 +1,61 @@
+name: Build MovieShrinkPro Windows EXE
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-exe:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - name: Install builder
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.11.1
+      - name: Get Windows FFmpeg and FFprobe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath unpack
+          New-Item -ItemType Directory -Path bin -Force | Out-Null
+          $a = Get-ChildItem unpack -Filter ffmpeg.exe -Recurse | Select-Object -First 1
+          $b = Get-ChildItem unpack -Filter ffprobe.exe -Recurse | Select-Object -First 1
+          if (!$a -or !$b) { throw 'ffmpeg.exe or ffprobe.exe is missing' }
+          Copy-Item $a.FullName bin/ffmpeg.exe
+          Copy-Item $b.FullName bin/ffprobe.exe
+      - name: Build single self-contained EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name MovieShrinkPro --add-binary "bin/ffmpeg.exe;bin" --add-binary "bin/ffprobe.exe;bin" MovieShrinkPro.py
+      - name: Run packaged conversion self-test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path 'dist/MovieShrinkPro.exe').Path
+          $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "EXE conversion self-test failed with $($p.ExitCode)" }
+      - name: Check GUI launches
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path 'dist/MovieShrinkPro.exe').Path
+          $p = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 9
+          $p.Refresh()
+          if ($p.HasExited) { throw "GUI exited unexpectedly with $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+      - name: Create download ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/MovieShrinkPro.exe -DestinationPath MovieShrinkPro_Windows10_x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MovieShrinkPro_Windows10_x64
+          path: MovieShrinkPro_Windows10_x64.zip
+          retention-days: 30
