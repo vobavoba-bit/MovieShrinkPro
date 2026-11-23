@@ -397,7 +397,10 @@ class MovieShrink(tk.Tk):
         ttk.Checkbutton(subs,text="Αντιγραφή εξωτερικών υποτίτλων",
                         variable=self.copy_subtitles).pack(anchor="w",padx=6,pady=(1,4))
         # Right settings in a single vertical pane, not hidden in tab pages.
-        wrap=tk.Frame(right,bg=paper);wrap.pack(fill="both",expand=True,padx=(4,2),pady=3)
+        # Keep Quality Guard and action controls visible; scroll only detailed settings.
+        pinned=tk.Frame(right,bg=paper)
+        pinned.pack(side="bottom",fill="x",padx=5,pady=(1,4))
+        wrap=tk.Frame(right,bg=paper);wrap.pack(side="top",fill="both",expand=True,padx=(4,2),pady=3)
         sc=tk.Scrollbar(wrap,orient="vertical");sc.pack(side="right",fill="y")
         canvas=tk.Canvas(wrap,bg=paper,highlightthickness=0,yscrollcommand=sc.set)
         canvas.pack(side="left",fill="both",expand=True)
@@ -445,7 +448,7 @@ class MovieShrink(tk.Tk):
         tk.Label(form,text="Μέγεθος / θέση / καθυστέρηση: δεν έχουν υλοποιηθεί ακόμη.",
                  bg=paper,fg="#6b7b87",font=("Segoe UI",8),wraplength=245,
                  justify="left").pack(fill="x",padx=8,pady=(2,4))
-        guard=tk.Frame(form,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
+        guard=tk.Frame(pinned,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
         guard.pack(fill="x",padx=6,pady=(4,5))
         tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffdd79",fg="#66450a",
                  font=("Segoe UI",10,"bold"),anchor="w",padx=8,pady=4).pack(fill="x")
@@ -455,9 +458,11 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
         tk.Label(guard,textvariable=self.quality_warning,bg="#fff1c1",fg="#78540b",
                  font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
-        ttk.Button(form,text="⚙  Προτεινόμενες ρυθμίσεις",
-                   command=self.recommended_settings).pack(fill="x",padx=7,pady=(1,3))
-        ttk.Button(form,text="↺  Επαναφορά",command=self.recommended_settings).pack(fill="x",padx=7,pady=(0,4))
+        buttons=tk.Frame(pinned,bg=paper);buttons.pack(fill="x",padx=6,pady=(1,3))
+        ttk.Button(buttons,text="⚙ Προτεινόμενες",command=self.recommended_settings).pack(
+            side="left",fill="x",expand=True,padx=(0,3))
+        ttk.Button(buttons,text="↺ Επαναφορά",command=self.recommended_settings).pack(
+            side="left",fill="x",expand=True,padx=(3,0))
         section("▣  Φάκελος αποθήκευσης")
         destrow=tk.Frame(form,bg=paper);destrow.pack(fill="x",padx=6,pady=(0,8))
         ttk.Entry(destrow,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,4))
