@@ -40,6 +40,16 @@ assert app.stop_btn.cget("image") != ""
 assert app.btn.winfo_manager() == "pack"
 assert app.stop_btn.winfo_manager() == "pack"
 assert app.btn.master == app.stop_btn.master
+assert app.btn.master == app.action_panel
+assert str(app.btn.pack_info()["side"]) == "top"
+assert str(app.stop_btn.pack_info()["side"]) == "top"
+app.deiconify()
+app.geometry("1000x690+5+5")
+app.update()
+assert app.btn.winfo_rooty() < app.stop_btn.winfo_rooty(), "START must be above STOP"
+assert app.stop_btn.winfo_rooty() + app.stop_btn.winfo_height() < app.winfo_rooty() + app.winfo_height(), "STOP must be visible"
+assert app.btn.winfo_rootx() == app.stop_btn.winfo_rootx(), "START and STOP must align vertically"
+app.withdraw()
 assert len(app._styled_button_images) >= 4
 assert not any("ΕΝΑΡΞΗ" in v or "ΔΙΑΚΟΠΗ" in v for v in button_labels)
 
