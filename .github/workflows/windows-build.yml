@@ -16,7 +16,7 @@ jobs:
           python-version: '3.11'
           architecture: x64
       - name: Install builder
-        run: python -m pip install --disable-pip-version-check pyinstaller==6.11.1
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.11.1 Pillow==11.1.0
       - name: Get Windows FFmpeg and FFprobe
         shell: pwsh
         run: |
@@ -32,7 +32,7 @@ jobs:
       - name: Build single self-contained EXE
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --name MovieShrinkPro --add-binary "bin/ffmpeg.exe;bin" --add-binary "bin/ffprobe.exe;bin" MovieShrinkPro.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name MovieShrinkPro --add-binary "bin/ffmpeg.exe;bin" --add-binary "bin/ffprobe.exe;bin" --add-data "assets/movieshrink_logo.jpg;assets" MovieShrinkPro.py
       - name: Run packaged conversion self-test
         shell: pwsh
         run: |
