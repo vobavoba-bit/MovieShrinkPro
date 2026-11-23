@@ -55,6 +55,7 @@ class MovieShrink(tk.Tk):
         self.size.trace_add("write",self.update_progress_target)
         self.update_quality_hint();self.update_progress_target()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
+        self.bind("<Configure>",self.auto_layout)
     def glossy_button(self,parent,label,command,colors,width=152,height=52):
         """Real rounded anti-aliased button images; Windows Tk draws exact pixels."""
         from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -162,6 +163,12 @@ class MovieShrink(tk.Tk):
         button.bind("<Enter>",lambda e:button.configure(image=hot))
         button.bind("<Leave>",lambda e:button.configure(image=normal))
         return button
+    def auto_layout(self,event):
+        if event.widget is not self:return
+        if hasattr(self,"preview_box"):
+            desired=max(115,min(235,event.height-505))
+            if self.preview_box.cget("height")!=desired:
+                self.preview_box.configure(height=desired)
     def ui(self):
         """Functional DVD Shrink-inspired skin, responsive down to 970x640."""
         from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -295,6 +302,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=4).pack(side="bottom",fill="x")
         # Center preview + explicit enable/pause/off; subtitle copy is a real setting.
         preview_box=tk.Frame(center,bg="#071525",height=195)
+        self.preview_box=preview_box
         preview_box.pack(fill="x",padx=5,pady=(5,3));preview_box.pack_propagate(False)
         self.image=tk.Label(preview_box,text="▶\nΠροεπισκόπηση απενεργοποιημένη",
                             bg="#071525",fg="#bcd9f2",font=("Segoe UI",10))
@@ -345,11 +353,25 @@ class MovieShrink(tk.Tk):
         canvas.bind("<Configure>",lambda e:canvas.itemconfigure(fid,width=e.width))
         canvas.bind("<MouseWheel>",lambda e:canvas.yview_scroll(-int(e.delta/120),"units"))
         def section(title):
-            tk.Label(form,text=title,bg="#c8e0f6",fg=navy,
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=3).pack(fill="x",pady=(4,2))
+            tk.Label(form,text=title,bg="#b8d7f3",fg=navy,
+                     font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=3).pack(fill="x",pady=(4,1))
         def choose(var,entries):
+            rows=[]
             for value,label in entries:
-                ttk.Radiobutton(form,text=label,variable=var,value=value).pack(anchor="w",padx=9,pady=1)
+                button=tk.Radiobutton(form,text=label,variable=var,value=value,
+                                     bg=paper,fg=ink,activebackground="#a6d6fc",
+                                     selectcolor="#daedff",anchor="w",justify="left",
+                                     font=("Segoe UI",9),borderwidth=0,
+                                     highlightthickness=0,padx=6,pady=1)
+                button.pack(fill="x",padx=8,pady=0)
+                rows.append((value,button))
+            def refresh_choices(*_):
+                for value,button in rows:
+                    active=var.get()==value
+                    button.configure(bg="#a8d7ff" if active else paper,
+                                     font=("Segoe UI",9,"bold" if active else "normal"))
+            var.trace_add("write",refresh_choices)
+            refresh_choices()
         section("▣  Προφίλ ποιότητας")
         choose(self.quality,(("Μέγιστη","Μέγιστη ποιότητα"),("Ισορροπημένη","Ισορροπημένο (προτεινόμενο)"),
                              ("Μικρότερο αρχείο","Μικρότερο αρχείο")))
