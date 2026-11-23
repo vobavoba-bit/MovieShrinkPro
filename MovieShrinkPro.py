@@ -207,8 +207,7 @@ class MovieShrink(tk.Tk):
         for value,label in (("AAC Stereo","AAC Stereo • συμβατό με Mi Box S"),
                             ("Dolby Digital AC3","Dolby Digital AC3"),
                             ("Αρχικός ήχος","Διατήρηση αρχικού ήχου")):
-            ttk.Radiobutton(audio_tab,text=label,value=value,variable=self.audio,
-                            wraplength=250).pack(anchor="w",padx=10,pady=3)
+            ttk.Radiobutton(audio_tab,text=label,value=value,variable=self.audio).pack(anchor="w",padx=10,pady=3)
         tk.Label(audio_tab,text="Οι εξωτερικοί υπότιτλοι διατηρούνται σε ξεχωριστό αρχείο.",
                  bg=paper,fg="#385e82",font=("Segoe UI",9),
                  wraplength=250,justify="left",padx=8,pady=12).pack(fill="x")
