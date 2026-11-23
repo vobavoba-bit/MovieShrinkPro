@@ -30,6 +30,26 @@ def self_test():
     except Exception as e:
         (P(tempfile.gettempdir())/"MovieShrinkPro-selftest.txt").write_text(str(e),encoding="utf-8")
         return 1
+def read_srt_cues(path):
+    """Parse external subtitles for genuine live subtitle preview."""
+    data=None
+    for codec in ("utf-8-sig","utf-8","cp1253","cp1252"):
+        try:
+            data=P(path).read_text(encoding=codec)
+            break
+        except UnicodeError:continue
+    if data is None:return []
+    data=data.replace("\r\n","\n").replace("\r","\n")
+    rx=re.compile(r"(\d\d:\d\d:\d\d[,.]\d{1,3})\s*-->\s*"
+                  r"(\d\d:\d\d:\d\d[,.]\d{1,3})[^\n]*\n(.*?)(?=\n\s*\n|\Z)",re.S)
+    def seconds(v):
+        hh,mm,other=v.split(":")
+        sec,frac=re.split(r"[,.]",other,1)
+        return 3600*int(hh)+60*int(mm)+int(sec)+int(frac.ljust(3,"0")[:3])/1000
+    return [(seconds(m.group(1)),seconds(m.group(2)),
+             re.sub(r"<[^>]*>","",m.group(3).strip())) for m in rx.finditer(data)
+            if m.group(3).strip()]
+
 def style_srt_as_ass(source, destination, size_percent=100, position="Κάτω", delay_seconds=0.0):
     """Create an editable external ASS subtitle file with genuine style and timing.
     Uses no codecs or third-party deps; returns the number of cues written.
@@ -110,6 +130,7 @@ class MovieShrink(tk.Tk):
         self.subtitle_position=tk.StringVar(value="Κάτω")
         self.subtitle_delay=tk.StringVar(value="0.0")
         self.current_preview_frame=None
+        self.preview_subtitle_cues=[]
         self.ui()
         if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
         self.after(100,self.poll)
@@ -462,6 +483,9 @@ class MovieShrink(tk.Tk):
         self.image=tk.Label(preview_box,text="▶\nΠροεπισκόπηση απενεργοποιημένη",
                             bg="#071525",fg="#bcd9f2",font=("Segoe UI",10))
         self.image.pack(fill="both",expand=True,padx=3,pady=3)
+        self.preview_subtitle_overlay=tk.Label(preview_box,text="",bg="#071525",fg="white",
+                                             font=("Segoe UI",11,"bold"),justify="center")
+        self.preview_subtitle_overlay.place(relx=.5,rely=.88,anchor="center")
         transport=tk.Frame(center,bg="#112d48",height=33)
         transport.pack(fill="x",padx=5,pady=(0,2))
         tk.Label(transport,textvariable=self.preview_clock,bg="#112d48",fg="#e2f2ff",
@@ -635,6 +659,7 @@ class MovieShrink(tk.Tk):
         self.preview_clock.set("00:00 / "+self.clock_string(self.preview_duration))
         sub=self.sub(path)
         self.subtitle_info.set("Υπότιτλοι: "+sub.name if sub else "Δεν βρέθηκαν εξωτερικοί SRT / ASS")
+        self.preview_subtitle_cues=read_srt_cues(sub) if sub and sub.suffix.lower()==".srt" else []
         if self.preview_enabled:self.preview()
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
@@ -710,6 +735,26 @@ class MovieShrink(tk.Tk):
             self.external_subtitles[str(self.items[index]["path"])]=P(path)
             self.subtitle_info.set("Υπότιτλοι: "+P(path).name)
             self.copy_subtitles.set(True)
+            self.preview_subtitle_cues=read_srt_cues(path) if path.lower().endswith(".srt") else []
+    def update_live_subtitles(self,position):
+        overlay=self.preview_subtitle_overlay
+        if not self.copy_subtitles.get() or not self.preview_subtitle_cues:
+            overlay.configure(text="")
+            return
+        try:delay=float(self.subtitle_delay.get().replace(",","."))
+        except ValueError:delay=0
+        display=""
+        for st,en,body in self.preview_subtitle_cues:
+            if st+delay<=position<=en+delay:
+                display=body
+                break
+            if st+delay>position:break
+        scale={"Μικρό (80%)":9,"Μεσαίο (100%)":11,
+               "Μεγάλο (120%)":13,"Πολύ μεγάλο (140%)":15}
+        valign={"Πάνω":.13,"Κέντρο":.50,"Κάτω":.86}
+        overlay.configure(text=display,
+                          font=("Segoe UI",scale.get(self.subtitle_size.get(),11),"bold"))
+        overlay.place_configure(rely=valign.get(self.subtitle_position.get(),.86))
     def save_preview_frame(self):
         if self.current_preview_frame is None:
             messagebox.showinfo("Καρέ","Ενεργοποίησε την προεπισκόπηση πρώτα.")
@@ -762,6 +807,7 @@ class MovieShrink(tk.Tk):
         self.image.configure(image="",text="▶\n\nΠροεπισκόπηση απενεργοποιημένη")
         self.pic=None
         self.current_preview_frame=None
+        self.preview_subtitle_overlay.configure(text="")
     def preview(self):
         """CPU-friendly silent video playback, separately switchable from conversion."""
         if not self.preview_enabled or not self.items:return
@@ -942,6 +988,7 @@ class MovieShrink(tk.Tk):
                         if not self.preview_seek_drag and self.preview_duration>0:
                             self.preview_position.set(min(100,100*position/self.preview_duration))
                         self.preview_clock.set(self.clock_string(position)+" / "+self.clock_string(self.preview_duration))
+                        self.update_live_subtitles(position)
                         if not self.preview_pause.is_set():
                             self.preview_state.set("Προεπισκόπηση: παίζει χωρίς ήχο • 5 FPS")
                 elif event[0]=="preview_error":
