@@ -201,39 +201,77 @@ class MovieShrink(tk.Tk):
             path=os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts",fn)
             try:return ImageFont.truetype(path,size)
             except OSError:return ImageFont.load_default()
-        # Original icon and deep-blue luminous branded header are real image pixels.
-        head_bg=Image.new("RGB",(1400,123))
-        hd=ImageDraw.Draw(head_bg)
-        for y in range(123):
-            t=y/122
-            hd.line((0,y,1400,y),fill=(5+int(5*t),22+int(40*t),51+int(76*t)))
-        for x in range(1400):
-            y=103+int(11*__import__("math").sin(x/120))
-            hd.line((x,max(0,y-2),x,min(122,y+1)),fill=(23,166,252),width=2)
-        hd.line((0,120,1399,120),fill="#45bdff",width=3)
-        self.header_img=ImageTk.PhotoImage(head_bg)
-        head=tk.Frame(self,bg=dark,height=118)
-        head.pack(side="top",fill="x");head.pack_propagate(False)
-        tk.Label(head,image=self.header_img,bd=0).place(x=0,y=0,relwidth=1,relheight=1)
-        logo=None
+        # One fully rendered blue/cyan cinema banner instead of overlapping Tk labels.
+        # All pixels, labels and symbols belong to the actual interactive application.
+        from PIL import ImageFilter
+        import math
+        banner_width=min(1280,max(950,self.winfo_screenwidth()-45))
+        W,H=banner_width*2,236
+        banner=Image.new("RGB",(W,H))
+        pix=ImageDraw.Draw(banner)
+        for y in range(H):
+            t=y/(H-1)
+            color=(4+round(3*t),13+round(22*t),37+round(52*t))
+            pix.line((0,y,W,y),fill=color)
+        # Blue diagonal light and the curved electric wave of the reference.
+        glow=Image.new("RGBA",(W,H),(0,0,0,0))
+        gd=ImageDraw.Draw(glow)
+        for k in range(22,0,-1):
+            alpha=max(5,round(85*(1-k/24)))
+            pts=[]
+            for x in range(W):
+                y=192-32*math.sin(2*math.pi*x/W*1.55)+14*math.sin(2*math.pi*x/W*.72)+k/3
+                pts.append((x,int(y)))
+            gd.line(pts,fill=(2,148,255,alpha),width=max(2,k))
+        for x in range(0,W,2):
+            y=int(192-32*math.sin(2*math.pi*x/W*1.55)+14*math.sin(2*math.pi*x/W*.72))
+            gd.line((x,y-3,x,y+3),fill=(111,223,255,190),width=2)
+        gd.polygon([(int(W*.77),0),(int(W*.83),0),(int(W*.70),H),(int(W*.67),H)],
+                   fill=(0,94,219,75))
+        banner=Image.alpha_composite(banner.convert("RGBA"),glow.filter(ImageFilter.GaussianBlur(3)))
+        bd=ImageDraw.Draw(banner)
+        bd.line((0,H-5,W,H-5),fill="#28b9ff",width=4)
+        bd.line((0,1,W,1),fill="#5daddd",width=2)
         try:
-            base=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
-            logo=Image.open(base/"assets"/"movieshrink_logo.jpg").convert("RGB")
-            self.brand_image=ImageTk.PhotoImage(logo.resize((105,105),Image.Resampling.LANCZOS))
-            tk.Label(head,image=self.brand_image,bd=0,bg=dark).place(x=8,y=5)
-        except Exception:pass
-        tk.Label(head,text="MovieShrink",font=("Segoe UI",29,"bold","italic"),
-                 bg="#081f48",fg="#f4f9ff").place(x=126,y=20)
-        tk.Label(head,text="Pro",font=("Segoe UI",29,"bold","italic"),
-                 bg="#081f48",fg="#f9c83d").place(x=355,y=20)
-        tk.Label(head,text="Μετατροπή DVD / MP4 σε 1080p & 4K",
-                 font=("Segoe UI",10,"bold"),bg="#081f48",fg="#c9e6ff").place(x=129,y=78)
-        marks=tk.Frame(head,bg="#091f44");marks.place(relx=1,x=-8,y=32,anchor="ne")
-        for name in ("DVD","USB","MP4","1080p","4K"):
-            col="#f9cd47" if name in ("1080p","4K") else "#e3f3ff"
-            tk.Label(marks,text=name,font=("Segoe UI",10,"bold"),bg="#12477f",
-                     fg=col,highlightbackground="#5da1da",highlightthickness=1,
-                     padx=7,pady=6).pack(side="left",padx=2)
+            root=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
+            logo=Image.open(root/"assets"/"movieshrink_logo.jpg").convert("RGBA")
+            square=logo.resize((192,192),Image.Resampling.LANCZOS)
+            banner.alpha_composite(square,(14,18))
+            self.brand_image=ImageTk.PhotoImage(logo.resize((64,64),Image.Resampling.LANCZOS))
+        except Exception:
+            bd.ellipse((22,20,190,188),fill="#0e5b9c",outline="#68cbff",width=6)
+        def font(sz,bold=True,italic=False):
+            face="segoeuiz.ttf" if bold and italic else ("segoeuib.ttf" if bold else "segoeui.ttf")
+            try:return ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts",face),sz)
+            except OSError:return ImageFont.load_default()
+        titlefont=font(66,True,True)
+        smallfont=font(25,True)
+        bd=ImageDraw.Draw(banner)
+        bd.text((220,35),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
+        bd.text((216,30),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
+        title_size=bd.textbbox((0,0),"MovieShrink",font=titlefont)
+        wordx=216+title_size[2]-title_size[0]+10
+        bd.text((wordx+4,35),"Pro",font=titlefont,fill="#06101f",stroke_width=5,stroke_fill="#05132c")
+        bd.text((wordx,30),"Pro",font=titlefont,fill="#ffca44",stroke_width=1,stroke_fill="#ffe99c")
+        bd.text((221,132),"DVD / USB / MP4   •   Full HD 1080p & 4K",
+                font=smallfont,fill="#c5e8ff")
+        # Right-hand badges shrink to compact marks on smaller laptop screens.
+        badges=(("DVD",70),("USB",70),("MP4",74),("1080p",106),("4K",67))
+        total=sum(width for _,width in badges)+12*(len(badges)-1)
+        rx=W-total-23
+        badgefont=font(24)
+        for label,bw in badges:
+            is_gold=label in ("1080p","4K")
+            bd.rounded_rectangle((rx,62,rx+bw,147),radius=12,
+                fill="#0e315d",outline="#ffcb4b" if is_gold else "#6db8f3",width=3)
+            bbox=bd.textbbox((0,0),label,font=badgefont)
+            tx=rx+(bw-(bbox[2]-bbox[0]))/2
+            bd.text((tx,83),label,font=badgefont,fill="#ffd75c" if is_gold else "#ffffff")
+            rx+=bw+12
+        self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,118),Image.Resampling.LANCZOS))
+        head=tk.Frame(self,bg="#071a35",height=118)
+        head.pack(side="top",fill="x");head.pack_propagate(False)
+        tk.Label(head,image=self.header_img,bg="#071a35",bd=0,anchor="nw").pack(fill="both",expand=True)
         bar=tk.Frame(self,bg="#c7daee",height=54,highlightbackground="#79a5c9",highlightthickness=1)
         bar.pack(side="top",fill="x");bar.pack_propagate(False)
         available=self.winfo_screenwidth()
