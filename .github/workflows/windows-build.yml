@@ -29,10 +29,14 @@ jobs:
           if (!$a -or !$b) { throw 'ffmpeg.exe or ffprobe.exe is missing' }
           Copy-Item $a.FullName bin/ffmpeg.exe
           Copy-Item $b.FullName bin/ffprobe.exe
+      - name: Generate Windows app icon from the MovieShrink Pro logo
+        shell: pwsh
+        run: |
+          python -c "from PIL import Image; Image.open('assets/movieshrink_logo.jpg').save('assets/movieshrink.ico',format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64)])"
       - name: Build single self-contained EXE
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --name MovieShrinkPro --add-binary "bin/ffmpeg.exe;bin" --add-binary "bin/ffprobe.exe;bin" --add-data "assets/movieshrink_logo.jpg;assets" MovieShrinkPro.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --icon assets/movieshrink.ico --name MovieShrinkPro --add-binary "bin/ffmpeg.exe;bin" --add-binary "bin/ffprobe.exe;bin" --add-data "assets/movieshrink_logo.jpg;assets" MovieShrinkPro.py
       - name: Run packaged conversion self-test
         shell: pwsh
         run: |
