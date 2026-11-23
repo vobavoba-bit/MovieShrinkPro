@@ -44,6 +44,10 @@ class MovieShrink(tk.Tk):
         self.preview_stop=threading.Event();self.preview_pause=threading.Event()
         self.preview_generation=0;self.preview_proc=None
         self.preview_enabled=False;self.preview_thread=None
+        self.preview_seek=5.0;self.preview_duration=0.0
+        self.preview_position=tk.DoubleVar(value=0)
+        self.preview_clock=tk.StringVar(value="00:00 / --:--")
+        self.preview_seek_drag=False
         self.ui()
         if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
         self.after(100,self.poll)
@@ -196,22 +200,22 @@ class MovieShrink(tk.Tk):
             hd.line((x,max(0,y-2),x,min(122,y+1)),fill=(23,166,252),width=2)
         hd.line((0,120,1399,120),fill="#45bdff",width=3)
         self.header_img=ImageTk.PhotoImage(head_bg)
-        head=tk.Frame(self,bg=dark,height=112)
+        head=tk.Frame(self,bg=dark,height=118)
         head.pack(side="top",fill="x");head.pack_propagate(False)
         tk.Label(head,image=self.header_img,bd=0).place(x=0,y=0,relwidth=1,relheight=1)
         logo=None
         try:
             base=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
             logo=Image.open(base/"assets"/"movieshrink_logo.jpg").convert("RGB")
-            self.brand_image=ImageTk.PhotoImage(logo.resize((94,94),Image.Resampling.LANCZOS))
-            tk.Label(head,image=self.brand_image,bd=0,bg=dark).place(x=15,y=7)
+            self.brand_image=ImageTk.PhotoImage(logo.resize((105,105),Image.Resampling.LANCZOS))
+            tk.Label(head,image=self.brand_image,bd=0,bg=dark).place(x=8,y=5)
         except Exception:pass
-        tk.Label(head,text="MovieShrink",font=("Segoe UI",27,"bold","italic"),
-                 bg="#081f48",fg="#f4f9ff").place(x=120,y=22)
-        tk.Label(head,text="Pro",font=("Segoe UI",27,"bold","italic"),
-                 bg="#081f48",fg="#f9c83d").place(x=326,y=22)
+        tk.Label(head,text="MovieShrink",font=("Segoe UI",29,"bold","italic"),
+                 bg="#081f48",fg="#f4f9ff").place(x=126,y=20)
+        tk.Label(head,text="Pro",font=("Segoe UI",29,"bold","italic"),
+                 bg="#081f48",fg="#f9c83d").place(x=355,y=20)
         tk.Label(head,text="Μετατροπή DVD / MP4 σε 1080p & 4K",
-                 font=("Segoe UI",10,"bold"),bg="#081f48",fg="#c9e6ff").place(x=121,y=75)
+                 font=("Segoe UI",10,"bold"),bg="#081f48",fg="#c9e6ff").place(x=129,y=78)
         marks=tk.Frame(head,bg="#091f44");marks.place(relx=1,x=-8,y=32,anchor="ne")
         for name in ("DVD","USB","MP4","1080p","4K"):
             col="#f9cd47" if name in ("1080p","4K") else "#e3f3ff"
@@ -290,11 +294,22 @@ class MovieShrink(tk.Tk):
         tk.Label(left,textvariable=self.queue_summary,bg="#cfe1f3",fg=navy,
                  font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=4).pack(side="bottom",fill="x")
         # Center preview + explicit enable/pause/off; subtitle copy is a real setting.
-        preview_box=tk.Frame(center,bg="#071525",height=190)
+        preview_box=tk.Frame(center,bg="#071525",height=195)
         preview_box.pack(fill="x",padx=5,pady=(5,3));preview_box.pack_propagate(False)
         self.image=tk.Label(preview_box,text="▶\nΠροεπισκόπηση απενεργοποιημένη",
                             bg="#071525",fg="#bcd9f2",font=("Segoe UI",10))
         self.image.pack(fill="both",expand=True,padx=3,pady=3)
+        transport=tk.Frame(center,bg="#112d48",height=33)
+        transport.pack(fill="x",padx=5,pady=(0,3))
+        tk.Label(transport,textvariable=self.preview_clock,bg="#112d48",fg="#e2f2ff",
+                 font=("Segoe UI",8,"bold")).pack(side="left",padx=(6,3))
+        self.preview_slider=ttk.Scale(transport,from_=0,to=100,
+                                       variable=self.preview_position,orient="horizontal")
+        self.preview_slider.pack(side="left",fill="x",expand=True,padx=(3,6))
+        self.preview_slider.bind("<ButtonPress-1>",self.preview_seek_begin)
+        self.preview_slider.bind("<ButtonRelease-1>",self.preview_seek_end)
+        tk.Label(transport,text="🔇",bg="#112d48",fg="#e2f2ff",
+                 font=("Segoe UI",10)).pack(side="right",padx=5)
         pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=5,pady=(1,2))
         self.preview_button=ttk.Button(pc,text="▶ Προεπισκόπηση",command=self.toggle_preview)
         self.preview_button.pack(side="left",padx=(0,4))
@@ -411,6 +426,10 @@ class MovieShrink(tk.Tk):
         if i>=len(self.items):return
         path=self.items[i]["path"]
         self.current_detail.set(path.name)
+        self.preview_duration=self.items[i].get("duration_seconds",0.0)
+        self.preview_seek=5.0
+        self.preview_position.set(0)
+        self.preview_clock.set("00:00 / "+self.clock_string(self.preview_duration))
         sub=self.sub(path)
         self.subtitle_info.set("Υπότιτλοι: "+sub.name if sub else "Δεν βρέθηκαν εξωτερικοί SRT / ASS")
         if self.preview_enabled:self.preview()
@@ -433,7 +452,7 @@ class MovieShrink(tk.Tk):
                     try:
                         duration,w,h,_=probe(filename)
                         hh=int(duration)//3600;mm=int(duration)%3600//60;ss=int(duration)%60
-                        self.events.put(("metadata",i,f"{hh:02d}:{mm:02d}:{ss:02d}",f"{w}×{h}"))
+                        self.events.put(("metadata",i,f"{hh:02d}:{mm:02d}:{ss:02d}",f"{w}×{h}",duration))
                     except Exception:pass
                 threading.Thread(target=metadata,daemon=True).start()
         self.refresh()
@@ -455,6 +474,21 @@ class MovieShrink(tk.Tk):
     def destination(self):
         p=filedialog.askdirectory()
         if p:self.output.set(p)
+    def clock_string(self,seconds):
+        seconds=max(0,int(seconds or 0))
+        return f"{seconds//3600:02d}:{(seconds%3600)//60:02d}:{seconds%60:02d}"
+    def preview_seek_begin(self,event=None):
+        self.preview_seek_drag=True
+    def preview_seek_end(self,event=None):
+        self.preview_seek_drag=False
+        if not self.preview_enabled:return
+        selected=self.tree.selection()
+        index=int(selected[0]) if selected else 0
+        if index>=len(self.items):return
+        duration=self.items[index].get("duration_seconds",0.0)
+        if duration<=0:return
+        self.preview_seek=max(0,min(duration-1,duration*self.preview_position.get()/100))
+        self.preview()
     def toggle_preview(self):
         if self.preview_enabled:
             self.disable_preview()
@@ -489,6 +523,7 @@ class MovieShrink(tk.Tk):
         self.preview_button.configure(text="▶ Ενεργοποίηση")
         self.preview_pause_button.configure(state="disabled",text="⏸ Παύση")
         self.preview_state.set("Προεπισκόπηση: κλειστή")
+        self.preview_clock.set("00:00 / "+self.clock_string(self.preview_duration))
         self.image.configure(image="",text="▶\n\nΠροεπισκόπηση απενεργοποιημένη")
         self.pic=None
     def preview(self):
@@ -509,13 +544,15 @@ class MovieShrink(tk.Tk):
         self.preview_pause_button.configure(text="⏸ Παύση")
         self.preview_state.set("Προεπισκόπηση: φόρτωση…")
         path=self.items[index]["path"]
+        self.preview_duration=self.items[index].get("duration_seconds",self.preview_duration)
+        start_time=self.preview_seek
         def worker():
             proc=None
             try:
                 ff=binary("ffmpeg.exe")
                 if not ff:raise RuntimeError("Δεν βρέθηκε FFmpeg.")
                 # 320x180, 5 fps limits CPU load on older Intel HD 4000 systems.
-                cmd=[ff,"-hide_banner","-loglevel","error","-ss","5","-i",str(path),
+                cmd=[ff,"-hide_banner","-loglevel","error","-ss",str(start_time),"-i",str(path),
                      "-an","-vf","fps=5,scale=320:180:force_original_aspect_ratio=decrease,"
                      "pad=320:180:(ow-iw)/2:(oh-ih)/2",
                      "-pix_fmt","rgb24","-f","rawvideo","pipe:1"]
@@ -523,6 +560,7 @@ class MovieShrink(tk.Tk):
                                       creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
                 self.preview_proc=proc
                 frame_bytes=320*180*3
+                frame_index=0
                 while not stop.is_set() and generation==self.preview_generation:
                     if self.preview_pause.is_set():
                         time.sleep(.08)
@@ -530,7 +568,8 @@ class MovieShrink(tk.Tk):
                     frame=proc.stdout.read(frame_bytes)
                     if len(frame)!=frame_bytes:break
                     if self.events.qsize()<8:
-                        self.events.put(("preview_frame",generation,frame))
+                        self.events.put(("preview_frame",generation,frame,start_time+frame_index/5))
+                    frame_index+=1
                     time.sleep(.19)
             except Exception as e:
                 self.events.put(("preview_error",generation,str(e)))
@@ -631,12 +670,15 @@ class MovieShrink(tk.Tk):
             while True:
                 event=self.events.get_nowait()
                 if event[0]=="preview_frame":
-                    _,generation,frame=event
+                    _,generation,frame,position=event
                     if generation==self.preview_generation and self.preview_enabled:
                         from PIL import Image, ImageTk
                         im=Image.frombytes("RGB",(320,180),frame)
                         self.pic=ImageTk.PhotoImage(im)
                         self.image.configure(image=self.pic,text="")
+                        if not self.preview_seek_drag and self.preview_duration>0:
+                            self.preview_position.set(min(100,100*position/self.preview_duration))
+                        self.preview_clock.set(self.clock_string(position)+" / "+self.clock_string(self.preview_duration))
                         if not self.preview_pause.is_set():
                             self.preview_state.set("Προεπισκόπηση: παίζει χωρίς ήχο • 5 FPS")
                 elif event[0]=="preview_error":
@@ -645,10 +687,13 @@ class MovieShrink(tk.Tk):
                     if event[1]==self.preview_generation and self.preview_enabled:
                         self.preview_state.set("Προεπισκόπηση: τέλος αποσπάσματος")
                 elif event[0]=="metadata":
-                    _,i,duration_text,resolution=event
+                    _,i,duration_text,resolution,duration_seconds=event
                     if 0<=i<len(self.items):
                         self.items[i]["duration_text"]=duration_text
+                        self.items[i]["duration_seconds"]=duration_seconds
                         self.items[i]["resolution"]=resolution
+                        if self.tree.selection() and int(self.tree.selection()[0])==i:
+                            self.preview_duration=duration_seconds
                         self.refresh()
                 elif event[0]=="resolution":
                     _,i,source_label,destination_label=event
