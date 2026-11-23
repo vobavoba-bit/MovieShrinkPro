@@ -12,7 +12,7 @@ for i in range(24):
     if hwnd:break
     time.sleep(.5)
 if not hwnd:raise RuntimeError("Cannot locate the real window")
-u.MoveWindow(hwnd,0,0,1280,720,True)
+u.MoveWindow(hwnd,0,0,1366,768,True)
 u.ShowWindow(hwnd,9)
 time.sleep(2)
 class RECT(ctypes.Structure):
