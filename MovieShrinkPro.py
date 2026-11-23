@@ -242,8 +242,11 @@ class MovieShrink(tk.Tk):
         try:
             root=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
             logo=Image.open(root/"assets"/"movieshrink_logo.jpg").convert("RGBA")
-            square=logo.resize((192,192),Image.Resampling.LANCZOS)
-            banner.alpha_composite(square,(14,18))
+            # Crop just the film-reel / disc / MP4 artwork to avoid duplicate text in the header.
+            lw,lh=logo.size
+            reel=logo.crop((int(lw*.035),int(lh*.16),int(lw*.96),int(lh*.73)))
+            reel=reel.resize((355,202),Image.Resampling.LANCZOS)
+            banner.alpha_composite(reel,(13,9))
             self.brand_image=ImageTk.PhotoImage(logo.resize((64,64),Image.Resampling.LANCZOS))
         except Exception:
             bd.ellipse((22,20,190,188),fill="#0e5b9c",outline="#68cbff",width=6)
@@ -254,13 +257,13 @@ class MovieShrink(tk.Tk):
         titlefont=font(66,True,True)
         smallfont=font(25,True)
         bd=ImageDraw.Draw(banner)
-        bd.text((220,35),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
-        bd.text((216,30),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
+        bd.text((393,35),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
+        bd.text((389,30),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
         title_size=bd.textbbox((0,0),"MovieShrink",font=titlefont)
-        wordx=216+title_size[2]-title_size[0]+10
+        wordx=389+title_size[2]-title_size[0]+10
         bd.text((wordx+4,35),"Pro",font=titlefont,fill="#06101f",stroke_width=5,stroke_fill="#05132c")
         bd.text((wordx,30),"Pro",font=titlefont,fill="#ffca44",stroke_width=1,stroke_fill="#ffe99c")
-        bd.text((221,132),"DVD / USB / MP4   •   Full HD 1080p & 4K",
+        bd.text((394,132),"DVD / USB / MP4   •   Full HD 1080p & 4K",
                 font=smallfont,fill="#c5e8ff")
         # Right-hand badges shrink to compact marks on smaller laptop screens.
         badges=(("DVD",70),("USB",70),("MP4",74),("1080p",106),("4K",67))
