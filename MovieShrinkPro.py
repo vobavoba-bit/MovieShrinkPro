@@ -49,6 +49,57 @@ class MovieShrink(tk.Tk):
         self.size.trace_add("write",self.update_progress_target)
         self.update_quality_hint();self.update_progress_target()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
+    def glossy_button(self,parent,label,command,colors,width=152,height=52):
+        """Real rounded anti-aliased button images; Windows Tk draws exact pixels."""
+        from PIL import Image, ImageDraw, ImageFont, ImageTk
+        import tkinter.font as tkfont
+        import math
+        normal_top,normal_bottom,outline=colors
+        def rgb(h):return tuple(int(h[i:i+2],16) for i in (1,3,5))
+        def mix(a,b,t):return tuple(round(a[i]*(1-t)+b[i]*t) for i in range(3))
+        def artwork(hover=False):
+            top=rgb(normal_top);bottom=rgb(normal_bottom)
+            if hover:
+                top=mix(top,(255,255,255),.18)
+                bottom=mix(bottom,(255,255,255),.10)
+            im=Image.new("RGBA",(width*2,height*2),(0,0,0,0))
+            draw=ImageDraw.Draw(im)
+            w,h=im.size
+            mask=Image.new("L",(w,h),0)
+            md=ImageDraw.Draw(mask)
+            md.rounded_rectangle((2,2,w-3,h-3),radius=20,fill=255)
+            gradient=Image.new("RGBA",(w,h))
+            gd=ImageDraw.Draw(gradient)
+            for y in range(h):
+                t=y/max(1,h-1)
+                col=mix(top,bottom,t)
+                gd.line((0,y,w,y),fill=col+(255,))
+            im.paste(gradient,(0,0),mask)
+            draw=ImageDraw.Draw(im)
+            draw.rounded_rectangle((2,2,w-3,h-3),radius=20,outline=rgb(outline)+(255,),width=4)
+            draw.arc((9,6,w-10,h-12),181,358,fill=(255,255,255,145),width=3)
+            try:
+                font_path=os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf")
+                font=ImageFont.truetype(font_path,26)
+            except OSError:
+                try:font=ImageFont.truetype("DejaVuSans-Bold.ttf",24)
+                except OSError:font=ImageFont.load_default()
+            bbox=draw.textbbox((0,0),label,font=font)
+            x=(w-(bbox[2]-bbox[0]))/2
+            y=(h-(bbox[3]-bbox[1]))/2-bbox[1]
+            draw.text((x,y+2),label,font=font,fill=(0,0,0,80))
+            draw.text((x,y),label,font=font,fill=(255,255,255,255))
+            return ImageTk.PhotoImage(im.resize((width,height),Image.Resampling.LANCZOS))
+        pic=artwork();hover_pic=artwork(True)
+        if not hasattr(self,"_styled_button_images"):self._styled_button_images=[]
+        self._styled_button_images.extend((pic,hover_pic))
+        btn=tk.Button(parent,image=pic,command=command,bd=0,relief="flat",
+                      highlightthickness=0,overrelief="flat",bg="#eef5fc",
+                      activebackground="#eef5fc",cursor="hand2",
+                      disabledforeground="#d4e4e1")
+        btn.bind("<Enter>",lambda e:btn.configure(image=hover_pic) if str(btn.cget("state"))=="normal" else None)
+        btn.bind("<Leave>",lambda e:btn.configure(image=pic))
+        return btn
     def ui(self):
         """Compact cinematic Windows 10 interface; functional controls only."""
         bg="#d9e5f2"; navy="#073667"; top="#071a37"; bright="#0e5fa5"
@@ -58,7 +109,7 @@ class MovieShrink(tk.Tk):
         style.configure("TFrame",background=bg)
         style.configure("TLabel",background=paper,foreground=ink,font=("Segoe UI",10))
         style.configure("TButton",font=("Segoe UI",10,"bold"),padding=(10,7),
-                        background="#e7f0fc",foreground=navy,bordercolor="#88abc9",relief="raised")
+                        background="#dcecff",foreground=navy,bordercolor="#739dca",relief="raised")
         style.map("TButton",background=[("active","#c3dff8"),("pressed","#9fcaf2")])
         style.configure("TEntry",padding=5)
         style.configure("TCombobox",font=("Segoe UI",10),padding=4,fieldbackground="white")
@@ -113,7 +164,7 @@ class MovieShrink(tk.Tk):
 
         bottom=tk.Frame(self,bg=paper,highlightbackground="#7da5cc",highlightthickness=1)
         bottom.pack(side="bottom",fill="x",padx=8,pady=(3,5))
-        tk.Label(bottom,text="▥   Πρόοδος μετατροπής",bg=navy,fg="white",anchor="w",
+        tk.Label(bottom,text="▥   ΠΡΟΟΔΟΣ ΜΕΤΑΤΡΟΠΗΣ",bg=navy,fg="white",anchor="w",
                  font=("Segoe UI",11,"bold"),padx=10,pady=4).pack(fill="x")
         body=tk.Frame(bottom,bg=paper);body.pack(fill="x",padx=10,pady=(3,1))
         bars=tk.Frame(body,bg=paper);bars.pack(side="left",fill="both",expand=True)
@@ -126,16 +177,12 @@ class MovieShrink(tk.Tk):
         ttk.Progressbar(bars,variable=self.allpct,maximum=100,
                         style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(3,3))
         commands=tk.Frame(body,bg=paper);commands.pack(side="right",padx=(14,0),pady=5)
-        self.btn=tk.Button(commands,text="▶  ΕΝΑΡΞΗ",command=self.start,
-                           bg="#0e9336",fg="white",activebackground="#21b64b",
-                           activeforeground="white",disabledforeground="#d0dcd2",
-                           font=("Segoe UI",12,"bold"),padx=15,pady=7,
-                           relief="raised",bd=2,cursor="hand2")
-        self.btn.pack(side="left",padx=(0,7))
-        tk.Button(commands,text="■  ΔΙΑΚΟΠΗ",command=self.stop,
-                  bg="#c32833",fg="white",activebackground="#9b1722",
-                  activeforeground="white",font=("Segoe UI",12,"bold"),
-                  padx=13,pady=7,relief="raised",bd=2,cursor="hand2").pack(side="left")
+        self.btn=self.glossy_button(commands,"▶ ΕΝΑΡΞΗ",self.start,
+                                     ("#56df6b","#087529","#056023"),width=160,height=52)
+        self.btn.pack(side="left",padx=(0,8))
+        self.stop_btn=self.glossy_button(commands,"■ ΔΙΑΚΟΠΗ",self.stop,
+                                         ("#ff7777","#af0b1c","#8b1020"),width=160,height=52)
+        self.stop_btn.pack(side="left")
         tk.Label(bottom,textvariable=self.status,bg=paper,fg="#335d81",
                  anchor="w",font=("Segoe UI",9)).pack(fill="x",padx=10,pady=(2,0))
         tk.Label(bottom,textvariable=self.metrics,bg=paper,fg="#315d82",
