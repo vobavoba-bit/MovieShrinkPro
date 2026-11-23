@@ -137,6 +137,13 @@ class MovieShrink(tk.Tk):
             elif symbol=="remove":
                 d.line((iconx-16,icony-15,iconx+16,icony+15),fill="#c72431",width=9)
                 d.line((iconx+16,icony-15,iconx-16,icony+15),fill="#c72431",width=9)
+            elif symbol=="settings":
+                d.ellipse((iconx-19,icony-19,iconx+19,icony+19),fill="#22679a",outline="#063d76",width=4)
+                d.ellipse((iconx-7,icony-7,iconx+7,icony+7),fill="#d6eeff")
+            elif symbol=="info":
+                d.ellipse((iconx-20,icony-20,iconx+20,icony+20),fill="#2d8ece",outline="#0c5184",width=4)
+                d.ellipse((iconx-3,icony-12,iconx+3,icony-6),fill="white")
+                d.rounded_rectangle((iconx-3,icony-2,iconx+3,icony+14),radius=2,fill="white")
             try:
                 f=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf"),24)
             except OSError:f=ImageFont.load_default()
@@ -213,12 +220,18 @@ class MovieShrink(tk.Tk):
                      padx=7,pady=6).pack(side="left",padx=2)
         bar=tk.Frame(self,bg="#c7daee",height=54,highlightbackground="#79a5c9",highlightthickness=1)
         bar.pack(side="top",fill="x");bar.pack_propagate(False)
-        for cap,act,icon_id,bw in (("Προσθήκη DVD",self.adddvd,"disc",188),
-                                    ("Προσθήκη φακέλου",self.addfolder,"folder",214),
-                                    ("Προσθήκη USB / MP4",self.addfiles,"usb",220),
-                                    ("Αφαίρεση",self.remove,"remove",162)):
-            self.metallic_toolbar_button(bar,cap,act,icon_id,width=bw).pack(
-                side="left",padx=(8,0),pady=4)
+        available=self.winfo_screenwidth()
+        roomy=available>=1200
+        specs=(("Προσθήκη DVD" if roomy else "DVD",self.adddvd,"disc"),
+               ("Προσθήκη φακέλου" if roomy else "Φάκελος",self.addfolder,"folder"),
+               ("Προσθήκη USB / MP4" if roomy else "USB / MP4",self.addfiles,"usb"),
+               ("Αφαίρεση",self.remove,"remove"),
+               ("Ρυθμίσεις",self.open_settings,"settings"),
+               ("Πληροφορίες",self.show_about,"info"))
+        width=min(208,max(136,(available-65)//6))
+        for cap,act,icon_id in specs:
+            self.metallic_toolbar_button(bar,cap,act,icon_id,width=width).pack(
+                side="left",padx=(5,0),pady=4)
         # Bottom is packed BEFORE the growing center: always remains visible.
         bottom=tk.Frame(self,bg=white,highlightbackground="#5987b9",highlightthickness=2)
         bottom.pack(side="bottom",fill="x",padx=8,pady=(3,6))
@@ -309,6 +322,7 @@ class MovieShrink(tk.Tk):
         sc=tk.Scrollbar(wrap,orient="vertical");sc.pack(side="right",fill="y")
         canvas=tk.Canvas(wrap,bg=paper,highlightthickness=0,yscrollcommand=sc.set)
         canvas.pack(side="left",fill="both",expand=True)
+        self.settings_canvas=canvas
         sc.configure(command=canvas.yview)
         form=tk.Frame(canvas,bg=paper)
         fid=canvas.create_window((0,0),window=form,anchor="nw")
@@ -355,6 +369,15 @@ class MovieShrink(tk.Tk):
         destrow=tk.Frame(form,bg=paper);destrow.pack(fill="x",padx=6,pady=(0,8))
         ttk.Entry(destrow,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,4))
         ttk.Button(destrow,text="…",width=2,command=self.destination).pack(side="right")
+    def open_settings(self):
+        if hasattr(self,"settings_canvas"):
+            self.settings_canvas.yview_moveto(0)
+            self.settings_canvas.focus_set()
+    def show_about(self):
+        messagebox.showinfo("MovieShrink Pro","MovieShrink Pro για Windows 10.\n"
+              "MP4 / MKV, 1080p / 4K, ουρά μετατροπής, FFmpeg.\n"
+              "Η πλήρης εισαγωγή DVD VIDEO_TS και οι ρυθμίσεις εμφάνισης υποτίτλων "
+              "δεν έχουν ολοκληρωθεί ακόμη.")
     def update_progress_target(self,*_):
         target=self.size.get()
         if target=="Πρωτότυπη":target="αρχική ανάλυση"
