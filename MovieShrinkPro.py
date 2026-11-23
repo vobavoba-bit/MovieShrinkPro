@@ -97,9 +97,6 @@ class MovieShrink(tk.Tk):
                                ("▤  Προσθήκη αρχείων",self.addfiles),
                                ("✖  Αφαίρεση",self.remove)):
             ttk.Button(toolbar,text=caption,command=action).pack(side="left",padx=(7,0),pady=7)
-        tk.Button(toolbar,text="▶  ΕΝΑΡΞΗ",command=self.start,bg="#168a3b",fg="white",
-                  activebackground="#27a64e",activeforeground="white",
-                  font=("Segoe UI",10,"bold"),relief="raised",bd=2,padx=17).pack(side="right",padx=10,pady=5)
 
         content=tk.Frame(self,bg=bg);content.pack(fill="both",expand=True,padx=6,pady=(6,3))
         content.grid_columnconfigure(0,weight=4,minsize=285)
@@ -211,9 +208,16 @@ class MovieShrink(tk.Tk):
                  bg="#f7fbff",fg=navy,anchor="w").pack(fill="x",pady=(5,0))
         ttk.Progressbar(track,variable=self.allpct,maximum=100,style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(4,2))
         actions=tk.Frame(control,bg="#f7fbff");actions.pack(side="right",padx=(12,0))
-        self.btn=ttk.Button(actions,text="▶  Έναρξη",command=self.start);self.btn.pack(side="left",padx=(0,5),pady=3)
-        tk.Button(actions,text="■  Διακοπή",command=self.stop,bg="#bd3540",fg="white",
-                  activebackground="#a22a33",font=("Segoe UI",9,"bold"),padx=12,pady=5).pack(side="left",pady=3)
+        self.btn=tk.Button(actions,text="▶  ΕΝΑΡΞΗ",command=self.start,
+                           bg="#158b3b",fg="white",activebackground="#23a84c",
+                           activeforeground="white",disabledforeground="#d9e8df",
+                           font=("Segoe UI",11,"bold"),relief="raised",bd=2,
+                           padx=20,pady=8,cursor="hand2")
+        self.btn.pack(side="left",padx=(0,7),pady=3)
+        tk.Button(actions,text="■  ΔΙΑΚΟΠΗ",command=self.stop,bg="#c4323e",fg="white",
+                  activebackground="#a6212d",activeforeground="white",
+                  font=("Segoe UI",11,"bold"),relief="raised",bd=2,
+                  padx=18,pady=8,cursor="hand2").pack(side="left",pady=3)
         tk.Label(bottom,textvariable=self.metrics,bg="#f7fbff",fg="#345878",
                  font=("Segoe UI",9),anchor="w").pack(fill="x",padx=9,pady=(0,5))
     def update_progress_target(self,*_):
