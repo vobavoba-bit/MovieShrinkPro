@@ -39,12 +39,15 @@ class MovieShrink(tk.Tk):
         self.output=tk.StringVar(value=str(P.home()/"Videos"/"MovieShrinkPro"))
         self.pct=tk.DoubleVar();self.allpct=tk.DoubleVar();self.status=tk.StringVar(value="Έτοιμο")
         self.metrics=tk.StringVar(value="Ταχύτητα: — FPS | Χρόνος: —")
+        self.source_progress_label=tk.StringVar(value="Αρχική ταινία: —")
+        self.output_progress_label=tk.StringVar(value="Μετατροπή σε 1080p • Συνολική πρόοδος")
         self.preview_stop=threading.Event();self.preview_pause=threading.Event()
         self.preview_generation=0;self.preview_proc=None
         self.preview_enabled=False;self.preview_thread=None
         self.ui();self.after(100,self.poll)
         for v in (self.quality,self.size,self.format,self.audio):v.trace_add("write",self.update_quality_hint)
-        self.update_quality_hint()
+        self.size.trace_add("write",self.update_progress_target)
+        self.update_quality_hint();self.update_progress_target()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
     def ui(self):
         """DVD Shrink-inspired three-column interface, sized for a 13-inch display."""
@@ -199,10 +202,12 @@ class MovieShrink(tk.Tk):
                  bg="#20669e",fg="white",anchor="w",padx=9,pady=5).pack(fill="x")
         control=tk.Frame(bottom,bg="#f7fbff");control.pack(fill="x",padx=9,pady=(8,6))
         track=tk.Frame(control,bg="#f7fbff");track.pack(side="left",fill="both",expand=True)
-        tk.Label(track,textvariable=self.status,bg="#f7fbff",fg=navy,
-                 font=("Segoe UI",9,"bold"),anchor="w").pack(fill="x")
+        tk.Label(track,textvariable=self.source_progress_label,bg="#f7fbff",fg=navy,
+                 font=("Segoe UI",10,"bold"),anchor="w").pack(fill="x")
+        tk.Label(track,textvariable=self.status,bg="#f7fbff",fg="#426680",
+                 font=("Segoe UI",9),anchor="w").pack(fill="x")
         ttk.Progressbar(track,variable=self.pct,maximum=100,style="Green.Horizontal.TProgressbar").pack(fill="x",pady=(4,2))
-        tk.Label(track,text="Συνολική πρόοδος",font=("Segoe UI",9),
+        tk.Label(track,textvariable=self.output_progress_label,font=("Segoe UI",10,"bold"),
                  bg="#f7fbff",fg=navy,anchor="w").pack(fill="x",pady=(5,0))
         ttk.Progressbar(track,variable=self.allpct,maximum=100,style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(4,2))
         actions=tk.Frame(control,bg="#f7fbff");actions.pack(side="right",padx=(12,0))
@@ -211,6 +216,10 @@ class MovieShrink(tk.Tk):
                   activebackground="#a22a33",font=("Segoe UI",9,"bold"),padx=12,pady=5).pack(side="left",pady=3)
         tk.Label(bottom,textvariable=self.metrics,bg="#f7fbff",fg="#345878",
                  font=("Segoe UI",9),anchor="w").pack(fill="x",padx=9,pady=(0,5))
+    def update_progress_target(self,*_):
+        target=self.size.get()
+        if target=="Πρωτότυπη":target="αρχική ανάλυση"
+        self.output_progress_label.set(f"Μετατροπή σε {target} • Συνολική πρόοδος")
     def recommended_settings(self):
         self.quality.set("Ισορροπημένη")
         self.size.set("1080p")
@@ -396,6 +405,10 @@ class MovieShrink(tk.Tk):
             tmp=None
             try:
                 source=x["path"];duration,w,h,a=probe(source);x["state"]="Επεξεργασία"
+                src_label=f"{w}×{h}" + (f" ({h}p)" if h in (480,576,720,1080,1440,2160) else "")
+                dest_label=self.size.get()
+                if dest_label=="Πρωτότυπη":dest_label=f"{h}p (χωρίς αλλαγή ανάλυσης)"
+                self.events.put(("resolution",i,src_label,dest_label))
                 suffix=".mp4" if self.format.get()=="MP4" else ".mkv"
                 out=P(self.output.get())/(source.stem+(" (4K)" if self.size.get()=="4K" else " (1080p)" if self.size.get()=="1080p" else "")+suffix)
                 if out.resolve()==source.resolve():raise RuntimeError("Η έξοδος συμπίπτει με την πηγή.")
@@ -461,6 +474,10 @@ class MovieShrink(tk.Tk):
                 elif event[0]=="preview_end":
                     if event[1]==self.preview_generation and self.preview_enabled:
                         self.preview_state.set("Προεπισκόπηση: τέλος αποσπάσματος")
+                elif event[0]=="resolution":
+                    _,i,source_label,destination_label=event
+                    self.source_progress_label.set(f"Αρχικό βίντεο: {source_label} • Ταινία {i+1}/{len(self.items)}")
+                    self.output_progress_label.set(f"Μετατροπή σε {destination_label} • Συνολική πρόοδος")
                 elif event[0]=="warn":self.status.set(event[1])
                 elif event[0]=="progress":
                     _,i,pct,fps,eta=event
