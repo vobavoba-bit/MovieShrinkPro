@@ -370,18 +370,18 @@ class MovieShrink(tk.Tk):
         bottom=tk.Frame(self,bg=white,highlightbackground="#5987b9",highlightthickness=2)
         bottom.pack(side="bottom",fill="x",padx=8,pady=(3,6))
         tk.Label(bottom,text="▥   ΠΡΟΟΔΟΣ ΜΕΤΑΤΡΟΠΗΣ",bg="#0c477d",fg="white",
-                 font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=4).pack(fill="x")
-        inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(4,0))
+                 font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=2).pack(fill="x")
+        inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(2,0))
         # Single pair of main actions: vertical, right-aligned, with no duplicates.
         controls=tk.Frame(inner,bg="#d8e8fb",highlightbackground="#8eb0d6",
-                          highlightthickness=1,padx=7,pady=5)
-        controls.pack(side="right",padx=(10,0),pady=(0,1))
+                          highlightthickness=1,padx=6,pady=3)
+        controls.pack(side="right",padx=(8,0),pady=(0,1))
         self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
-                                    ("#62eb77","#08772e","#075322"),width=184,height=41)
-        self.btn.pack(side="top",pady=(0,4),anchor="center")
+                                    ("#62eb77","#08772e","#075322"),width=184,height=39)
+        self.btn.pack(side="top",pady=(0,3),anchor="center")
         self.stop_btn=self.glossy_button(controls,"ΔΙΑΚΟΠΗ",self.stop,
-                                         ("#ff8888","#b00920","#790719"),width=184,height=41)
+                                         ("#ff8888","#b00920","#790719"),width=184,height=39)
         self.stop_btn.pack(side="top",anchor="center")
         bframe=tk.Frame(inner,bg=white);bframe.pack(side="left",fill="both",expand=True)
         for var,style_name,percentage,percentage_text in (
@@ -402,7 +402,7 @@ class MovieShrink(tk.Tk):
         # Three true interactive panels, preserving functionality.
         main=tk.Frame(self,bg="#bfcfe0")
         main.pack(side="top",fill="both",expand=True,padx=5,pady=(5,3))
-        for col,wt,minsize in ((0,35,290),(1,34,280),(2,31,275)):
+        for col,wt,minsize in ((0,33,280),(1,34,290),(2,33,290)):
             main.grid_columnconfigure(col,weight=wt,minsize=minsize)
         main.grid_rowconfigure(0,weight=1)
         def panel(index,title):
