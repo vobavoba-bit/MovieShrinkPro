@@ -85,8 +85,12 @@ class MovieShrink(tk.Tk):
                 try:font=ImageFont.truetype("DejaVuSans-Bold.ttf",24)
                 except OSError:font=ImageFont.load_default()
             bbox=draw.textbbox((0,0),label,font=font)
-            x=(w-(bbox[2]-bbox[0]))/2
+            x=(w-(bbox[2]-bbox[0])+48)/2
             y=(h-(bbox[3]-bbox[1]))/2-bbox[1]
+            if label=="ΕΝΑΡΞΗ":
+                draw.polygon([(28,30),(28,76),(65,53)],fill=(255,255,255,245))
+            elif label=="ΔΙΑΚΟΠΗ":
+                draw.rounded_rectangle((27,35,61,69),radius=3,fill=(255,255,255,245))
             draw.text((x,y+2),label,font=font,fill=(0,0,0,80))
             draw.text((x,y),label,font=font,fill=(255,255,255,255))
             return ImageTk.PhotoImage(im.resize((width,height),Image.Resampling.LANCZOS))
@@ -177,10 +181,10 @@ class MovieShrink(tk.Tk):
         ttk.Progressbar(bars,variable=self.allpct,maximum=100,
                         style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(3,3))
         commands=tk.Frame(body,bg=paper);commands.pack(side="right",padx=(14,0),pady=5)
-        self.btn=self.glossy_button(commands,"▶ ΕΝΑΡΞΗ",self.start,
+        self.btn=self.glossy_button(commands,"ΕΝΑΡΞΗ",self.start,
                                      ("#56df6b","#087529","#056023"),width=160,height=52)
         self.btn.pack(side="left",padx=(0,8))
-        self.stop_btn=self.glossy_button(commands,"■ ΔΙΑΚΟΠΗ",self.stop,
+        self.stop_btn=self.glossy_button(commands,"ΔΙΑΚΟΠΗ",self.stop,
                                          ("#ff7777","#af0b1c","#8b1020"),width=160,height=52)
         self.stop_btn.pack(side="left")
         tk.Label(bottom,textvariable=self.status,bg=paper,fg="#335d81",
