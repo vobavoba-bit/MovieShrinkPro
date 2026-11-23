@@ -61,6 +61,9 @@ jobs:
           } finally {
             Stop-Process -Id $p.Id -Force
           }
+      - name: Verify actual screenshot contains green Start and red Stop
+        shell: pwsh
+        run: python verify_real_gui.py
       - name: Create download ZIP
         shell: pwsh
         run: |
