@@ -24,10 +24,16 @@ def walk(root):
 walk(app)
 button_labels = [str(x.cget("text")) for x in all_widgets
                  if isinstance(x, (tk.Button,)) or x.winfo_class() == "TButton"]
-starts = [v for v in button_labels if "ΕΝΑΡΞΗ" in v or "Έναρξη" in v]
-stops = [v for v in button_labels if "ΔΙΑΚΟΠΗ" in v]
-assert len(starts) == 1, starts
-assert len(stops) == 1, stops
+assert app.btn.winfo_class() == "Button"
+assert app.stop_btn.winfo_class() == "Button"
+assert app.btn.cget("image") != ""
+assert app.stop_btn.cget("image") != ""
+assert app.btn.winfo_manager() == "pack"
+assert app.stop_btn.winfo_manager() == "pack"
+assert app.btn.master == app.stop_btn.master
+assert len(app._styled_button_images) >= 4
+assert not any("ΕΝΑΡΞΗ" in v or "ΔΙΑΚΟΠΗ" in v for v in button_labels)
+
 assert any("Προεπισκόπηση" in v for v in button_labels)
 assert any("Προτεινόμενες" in v for v in button_labels)
 app.destroy()
