@@ -910,8 +910,10 @@ class MovieShrink(tk.Tk):
                             self.events.put(("warn","Οι αλλαγές εμφάνισης εφαρμόζονται μόνο σε SRT. Το ASS διατηρήθηκε αρχικό."))
                         shutil.copy2(sub,out.with_suffix(sub.suffix))
                 x["pct"]=100;x["state"]="Έτοιμο"
+                self.events.put(("progress",i,100,0,0))
             except Exception as e:
                 x["state"]="Σφάλμα";x["error"]=str(e)
+                self.events.put(("error",i,str(e)))
                 try:
                     if tmp and tmp.exists():tmp.unlink()
                 except OSError:pass
@@ -961,6 +963,7 @@ class MovieShrink(tk.Tk):
                     self.source_progress_label.set(f"Αρχικό βίντεο: {source_label} • Ταινία {i+1}/{len(self.items)}")
                     self.output_progress_label.set(f"Μετατροπή σε {destination_label} • Συνολική πρόοδος")
                 elif event[0]=="warn":self.status.set(event[1])
+                elif event[0]=="error":self.status.set(f"Σφάλμα ταινίας {event[1]+1}: {event[2]}")
                 elif event[0]=="progress":
                     _,i,pct,fps,eta=event
                     self.pct.set(pct);self.status.set(f'Ταινία {i+1}/{len(self.items)}: {self.items[i]["path"].name} — {pct:.1f}%')
