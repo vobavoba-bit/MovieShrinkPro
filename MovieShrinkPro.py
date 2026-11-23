@@ -178,7 +178,7 @@ class MovieShrink(tk.Tk):
     def auto_layout(self,event):
         if event.widget is not self:return
         if hasattr(self,"preview_box"):
-            desired=max(115,min(235,event.height-505))
+            desired=max(84,min(270,event.height-570))
             if self.preview_box.cget("height")!=desired:
                 self.preview_box.configure(height=desired)
     def ui(self):
@@ -370,6 +370,9 @@ class MovieShrink(tk.Tk):
         self.tree.configure(yscrollcommand=yscroll.set)
         yscroll.pack(side="right",fill="y")
         self.tree.pack(side="left",fill="both",expand=True)
+        self.empty_queue_hint=tk.Label(lst,text="🎬\n\nΠροσθήκη ταινιών\nMP4 • MKV • AVI\n\nΕπίλεξε ταινίες ή φάκελο από τα επάνω κουμπιά",
+                     font=("Segoe UI",10),fg="#557899",bg="#f7fbff",justify="center")
+        self.empty_queue_hint.place(relx=.5,rely=.5,anchor="center")
         self.tree.tag_configure("even",background="#f7fbff")
         self.tree.tag_configure("odd",background="#dfeeff")
         self.tree.tag_configure("active",background="#b6deff",foreground="#07542a",font=("Segoe UI",9,"bold"))
@@ -552,6 +555,9 @@ class MovieShrink(tk.Tk):
         for i,x in enumerate(self.items):
             self.tree.insert("","end",iid=str(i),tags=(("active" if x["state"]=="Επεξεργασία" else "completed" if x["state"]=="Έτοιμο" else "error" if x["state"]=="Σφάλμα" else "odd" if i%2 else "even"),),values=(x["path"].name,x.get("duration_text","—"),x.get("resolution","—"),f'{x["pct"]:.0f}%',x["state"]))
         if self.items:self.allpct.set(sum(x["pct"] for x in self.items)/len(self.items))
+        if hasattr(self,"empty_queue_hint"):
+            if self.items:self.empty_queue_hint.place_forget()
+            else:self.empty_queue_hint.place(relx=.5,rely=.5,anchor="center")
         if hasattr(self,"queue_summary"):self.queue_summary.set(f"{len(self.items)} ταινίες  ·  {sum(x['state']=='Έτοιμο' for x in self.items)} ολοκληρωμένες")
     def sub(self,p):
         custom=self.external_subtitles.get(str(p))
