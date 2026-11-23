@@ -62,7 +62,7 @@ class MovieShrink(tk.Tk):
         style.map("TButton",background=[("active","#c3dff8"),("pressed","#9fcaf2")])
         style.configure("TEntry",padding=5)
         style.configure("TCombobox",font=("Segoe UI",10),padding=4,fieldbackground="white")
-        style.configure("TRadiobutton",background=paper,foreground=ink,font=("Segoe UI",10),padding=(1,3))
+        style.configure("TRadiobutton",background=paper,foreground=ink,font=("Segoe UI",10),padding=(1,1))
         style.map("TRadiobutton",background=[("active","#dbeeff")])
         style.configure("TCheckbutton",background=paper,foreground=ink,font=("Segoe UI",10))
         style.configure("Treeview",background="#f8fbff",fieldbackground="#f8fbff",
@@ -73,26 +73,26 @@ class MovieShrink(tk.Tk):
                         font=("Segoe UI",9,"bold"),padding=6)
         style.configure("Movie.TNotebook",background=paper,borderwidth=0)
         style.configure("Movie.TNotebook.Tab",background="#d0e3f6",foreground=navy,
-                        padding=(12,6),font=("Segoe UI",9,"bold"))
+                        padding=(8,4),font=("Segoe UI",9,"bold"))
         style.map("Movie.TNotebook.Tab",background=[("selected","#f8fbff")])
         style.configure("Green.Horizontal.TProgressbar",background="#15aa3b",troughcolor="#bfd2e7",thickness=15)
         style.configure("Blue.Horizontal.TProgressbar",background="#158edf",troughcolor="#bfd2e7",thickness=13)
 
         # Logo and blue-gold identity stay visible at common 1366×768 displays.
-        header=tk.Frame(self,bg=top,height=95)
+        header=tk.Frame(self,bg=top,height=80)
         header.pack(fill="x");header.pack_propagate(False)
         try:
             from PIL import Image, ImageTk
             base=P(getattr(sys,"_MEIPASS",P(__file__).resolve().parent))
             logo=Image.open(base/"assets"/"movieshrink_logo.jpg").convert("RGB")
-            self.brand_image=ImageTk.PhotoImage(logo.resize((78,78),Image.Resampling.LANCZOS))
+            self.brand_image=ImageTk.PhotoImage(logo.resize((66,66),Image.Resampling.LANCZOS))
             tk.Label(header,image=self.brand_image,bg=top).pack(side="left",padx=(12,8),pady=6)
         except Exception:
             tk.Label(header,text="◉",bg=top,fg="#33b7ff",font=("Segoe UI",35,"bold")).pack(side="left",padx=12)
         brand=tk.Frame(header,bg=top);brand.pack(side="left",fill="both",expand=True,pady=10)
         brandline=tk.Frame(brand,bg=top);brandline.pack(anchor="w")
         tk.Label(brandline,text="MovieShrink",bg=top,fg="#f0f8ff",
-                 font=("Segoe UI",24,"bold","italic")).pack(side="left")
+                 font=("Segoe UI",22,"bold","italic")).pack(side="left")
         tk.Label(brandline,text=" Pro",bg=top,fg=accent,
                  font=("Segoe UI",24,"bold","italic")).pack(side="left")
         tk.Label(brand,text="DVD  /  USB  /  MP4     •     Full HD 1080p & 4K",
@@ -103,16 +103,46 @@ class MovieShrink(tk.Tk):
                      highlightbackground="#4285be",highlightthickness=1,
                      font=("Segoe UI",10,"bold"),padx=8,pady=7).pack(side="left",padx=3)
 
-        toolbar=tk.Frame(self,bg="#c8dbef",height=53,highlightbackground="#9ebbd6",highlightthickness=1)
+        toolbar=tk.Frame(self,bg="#c8dbef",height=47,highlightbackground="#9ebbd6",highlightthickness=1)
         toolbar.pack(fill="x");toolbar.pack_propagate(False)
         for title,func in (("◉  Προσθήκη DVD",self.adddvd),
                            ("▣  Προσθήκη φακέλου / USB",self.addfolder),
                            ("▤  Προσθήκη ταινιών",self.addfiles),
                            ("✖  Αφαίρεση",self.remove)):
-            ttk.Button(toolbar,text=title,command=func).pack(side="left",padx=(7,0),pady=7)
+            ttk.Button(toolbar,text=title,command=func).pack(side="left",padx=(7,0),pady=5)
+
+        bottom=tk.Frame(self,bg=paper,highlightbackground="#7da5cc",highlightthickness=1)
+        bottom.pack(side="bottom",fill="x",padx=8,pady=(3,5))
+        tk.Label(bottom,text="▥   Πρόοδος μετατροπής",bg=navy,fg="white",anchor="w",
+                 font=("Segoe UI",11,"bold"),padx=10,pady=4).pack(fill="x")
+        body=tk.Frame(bottom,bg=paper);body.pack(fill="x",padx=10,pady=(3,1))
+        bars=tk.Frame(body,bg=paper);bars.pack(side="left",fill="both",expand=True)
+        tk.Label(bars,textvariable=self.source_progress_label,bg=paper,fg=navy,
+                 anchor="w",font=("Segoe UI",10,"bold")).pack(fill="x")
+        ttk.Progressbar(bars,variable=self.pct,maximum=100,
+                        style="Green.Horizontal.TProgressbar").pack(fill="x",pady=(3,4))
+        tk.Label(bars,textvariable=self.output_progress_label,bg=paper,fg=navy,
+                 anchor="w",font=("Segoe UI",10,"bold")).pack(fill="x")
+        ttk.Progressbar(bars,variable=self.allpct,maximum=100,
+                        style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(3,3))
+        commands=tk.Frame(body,bg=paper);commands.pack(side="right",padx=(14,0),pady=5)
+        self.btn=tk.Button(commands,text="▶  ΕΝΑΡΞΗ",command=self.start,
+                           bg="#0e9336",fg="white",activebackground="#21b64b",
+                           activeforeground="white",disabledforeground="#d0dcd2",
+                           font=("Segoe UI",12,"bold"),padx=15,pady=7,
+                           relief="raised",bd=2,cursor="hand2")
+        self.btn.pack(side="left",padx=(0,7))
+        tk.Button(commands,text="■  ΔΙΑΚΟΠΗ",command=self.stop,
+                  bg="#c32833",fg="white",activebackground="#9b1722",
+                  activeforeground="white",font=("Segoe UI",12,"bold"),
+                  padx=13,pady=7,relief="raised",bd=2,cursor="hand2").pack(side="left")
+        tk.Label(bottom,textvariable=self.status,bg=paper,fg="#335d81",
+                 anchor="w",font=("Segoe UI",9)).pack(fill="x",padx=10,pady=(2,0))
+        tk.Label(bottom,textvariable=self.metrics,bg=paper,fg="#315d82",
+                 anchor="w",font=("Segoe UI",9,"bold")).pack(fill="x",padx=10,pady=(1,3))
 
         main=tk.Frame(self,bg=bg)
-        main.pack(fill="both",expand=True,padx=7,pady=(7,3))
+        main.pack(fill="both",expand=True,padx=6,pady=(5,3))
         main.grid_columnconfigure(0,weight=37,minsize=265)
         main.grid_columnconfigure(1,weight=35,minsize=280)
         main.grid_columnconfigure(2,weight=28,minsize=265)
@@ -121,7 +151,7 @@ class MovieShrink(tk.Tk):
             outer=tk.Frame(main,bg=paper,highlightbackground="#7da5cc",highlightthickness=1)
             outer.grid(row=0,column=col,sticky="nsew",padx=3)
             tk.Label(outer,text=title,bg=navy,fg="white",anchor="w",
-                     font=("Segoe UI",11,"bold"),padx=10,pady=7).pack(fill="x")
+                     font=("Segoe UI",11,"bold"),padx=10,pady=5).pack(fill="x")
             return outer
         left=panel(0,"▤   Ουρά επεξεργασίας")
         middle=panel(1,"▣   Προεπισκόπηση")
@@ -147,7 +177,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9,"bold"),anchor="w",padx=8,pady=5).pack(fill="x",side="bottom")
 
         # Deliberate non-autoplay low-CPU source video player.
-        frame=tk.Frame(middle,bg="#091727",height=212)
+        frame=tk.Frame(middle,bg="#091727",height=162)
         frame.pack(fill="x",padx=7,pady=(7,4));frame.pack_propagate(False)
         self.image=tk.Label(frame,text="▶\n\nΗ προεπισκόπηση είναι κλειστή",
                             bg="#091727",fg="#b4d9f6",font=("Segoe UI",11))
@@ -162,7 +192,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9),anchor="w",padx=8).pack(fill="x")
         self.current_detail=tk.StringVar(value="Επίλεξε μια ταινία")
         tk.Label(middle,textvariable=self.current_detail,bg=paper,fg=ink,anchor="w",
-                 font=("Segoe UI",9,"bold"),wraplength=320,justify="left",padx=8,pady=3).pack(fill="x")
+                 font=("Segoe UI",9,"bold"),wraplength=320,justify="left",padx=8,pady=1).pack(fill="x")
         subtitles=tk.Frame(middle,bg="#d2e6fb",highlightbackground="#94b9dc",highlightthickness=1)
         subtitles.pack(fill="x",padx=7,pady=(5,6))
         tk.Label(subtitles,text="Aa  Εξωτερικοί υπότιτλοι SRT / ASS",
@@ -178,14 +208,14 @@ class MovieShrink(tk.Tk):
 
         # Right panel is a genuine notebook to keep every control readable on 13-inch screens.
         tabs=ttk.Notebook(right,style="Movie.TNotebook")
-        tabs.pack(fill="both",expand=True,padx=7,pady=(7,3))
+        tabs.pack(fill="both",expand=True,padx=6,pady=(4,2))
         picture=tk.Frame(tabs,bg=paper)
         audio_tab=tk.Frame(tabs,bg=paper)
         tabs.add(picture,text="Εικόνα & μορφή")
         tabs.add(audio_tab,text="Ήχος & πληροφορίες")
         def group(label):
             tk.Label(picture,text=label,bg="#d5e8fa",fg=navy,
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=6,pady=3).pack(fill="x",pady=(5,2))
+                     font=("Segoe UI",10,"bold"),anchor="w",padx=6,pady=2).pack(fill="x",pady=(3,1))
         group("▣  Προφίλ ποιότητας")
         for value,label in (("Μέγιστη","Μέγιστη ποιότητα • μεγάλο αρχείο"),
                             ("Ισορροπημένη","Ισορροπημένο • προτεινόμενο"),
@@ -201,7 +231,7 @@ class MovieShrink(tk.Tk):
                             ("MKV","MKV • περισσότερες δυνατότητες")):
             ttk.Radiobutton(picture,text=label,value=value,variable=self.format).pack(anchor="w",padx=8)
         ttk.Button(picture,text="✓ Προτεινόμενες ρυθμίσεις",
-                   command=self.recommended_settings).pack(fill="x",padx=7,pady=(8,5))
+                   command=self.recommended_settings).pack(fill="x",padx=7,pady=(3,2))
         tk.Label(audio_tab,text="♪  Ρύθμιση ήχου",bg="#d5e8fa",fg=navy,
                  font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=5).pack(fill="x",pady=(5,6))
         for value,label in (("AAC Stereo","AAC Stereo • συμβατό με Mi Box S"),
@@ -215,7 +245,7 @@ class MovieShrink(tk.Tk):
                    command=self.recommended_settings).pack(fill="x",padx=8,pady=8)
         # Compact, dynamic Quality Guard under tabs.
         guard=tk.Frame(right,bg="#fff0bf",highlightbackground="#deb74b",highlightthickness=1)
-        guard.pack(fill="x",padx=7,pady=(2,5))
+        guard.pack(fill="x",padx=7,pady=(1,2))
         tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffe39b",fg="#634800",
                  anchor="w",font=("Segoe UI",10,"bold"),padx=8,pady=4).pack(fill="x")
         self.quality_description=tk.StringVar()
@@ -227,7 +257,7 @@ class MovieShrink(tk.Tk):
                  font=("Segoe UI",9),anchor="w",wraplength=270,justify="left",
                  padx=8,pady=3).pack(fill="x")
         dest=tk.Frame(right,bg="#d2e5f8",highlightbackground="#91b5d7",highlightthickness=1)
-        dest.pack(fill="x",padx=7,pady=(1,6))
+        dest.pack(fill="x",padx=7,pady=(1,3))
         tk.Label(dest,text="▣  Φάκελος αποθήκευσης",bg="#d2e5f8",fg=navy,
                  anchor="w",font=("Segoe UI",9,"bold"),padx=7,pady=4).pack(fill="x")
         destrow=tk.Frame(dest,bg="#d2e5f8")
@@ -235,35 +265,6 @@ class MovieShrink(tk.Tk):
         ttk.Entry(destrow,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,4))
         ttk.Button(destrow,text="…",width=2,command=self.destination).pack(side="right")
 
-        bottom=tk.Frame(self,bg=paper,highlightbackground="#7da5cc",highlightthickness=1)
-        bottom.pack(fill="x",padx=10,pady=(2,9))
-        tk.Label(bottom,text="▥   Πρόοδος μετατροπής",bg=navy,fg="white",anchor="w",
-                 font=("Segoe UI",11,"bold"),padx=10,pady=6).pack(fill="x")
-        body=tk.Frame(bottom,bg=paper);body.pack(fill="x",padx=10,pady=(6,1))
-        bars=tk.Frame(body,bg=paper);bars.pack(side="left",fill="both",expand=True)
-        tk.Label(bars,textvariable=self.source_progress_label,bg=paper,fg=navy,
-                 anchor="w",font=("Segoe UI",10,"bold")).pack(fill="x")
-        ttk.Progressbar(bars,variable=self.pct,maximum=100,
-                        style="Green.Horizontal.TProgressbar").pack(fill="x",pady=(3,4))
-        tk.Label(bars,textvariable=self.output_progress_label,bg=paper,fg=navy,
-                 anchor="w",font=("Segoe UI",10,"bold")).pack(fill="x")
-        ttk.Progressbar(bars,variable=self.allpct,maximum=100,
-                        style="Blue.Horizontal.TProgressbar").pack(fill="x",pady=(3,3))
-        commands=tk.Frame(body,bg=paper);commands.pack(side="right",padx=(14,0),pady=9)
-        self.btn=tk.Button(commands,text="▶  ΕΝΑΡΞΗ",command=self.start,
-                           bg="#0e9336",fg="white",activebackground="#21b64b",
-                           activeforeground="white",disabledforeground="#d0dcd2",
-                           font=("Segoe UI",12,"bold"),padx=17,pady=10,
-                           relief="raised",bd=2,cursor="hand2")
-        self.btn.pack(side="left",padx=(0,7))
-        tk.Button(commands,text="■  ΔΙΑΚΟΠΗ",command=self.stop,
-                  bg="#c32833",fg="white",activebackground="#9b1722",
-                  activeforeground="white",font=("Segoe UI",12,"bold"),
-                  padx=15,pady=10,relief="raised",bd=2,cursor="hand2").pack(side="left")
-        tk.Label(bottom,textvariable=self.status,bg=paper,fg="#335d81",
-                 anchor="w",font=("Segoe UI",9)).pack(fill="x",padx=10,pady=(2,0))
-        tk.Label(bottom,textvariable=self.metrics,bg=paper,fg="#315d82",
-                 anchor="w",font=("Segoe UI",9,"bold")).pack(fill="x",padx=10,pady=(1,6))
     def update_progress_target(self,*_):
         target=self.size.get()
         if target=="Πρωτότυπη":target="αρχική ανάλυση"
