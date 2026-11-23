@@ -17,6 +17,9 @@ jobs:
           architecture: x64
       - name: Install builder
         run: python -m pip install --disable-pip-version-check pyinstaller==6.11.1 Pillow==11.1.0
+      - name: Test subtitle rendering and time shift
+        shell: pwsh
+        run: python subtitle_smoke.py
       - name: Validate compact GUI controls
         shell: pwsh
         run: python ui_smoke.py
