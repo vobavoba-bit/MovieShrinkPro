@@ -47,6 +47,9 @@ jobs:
           $exe = (Resolve-Path 'dist/MovieShrinkPro.exe').Path
           $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "EXE conversion self-test failed with $($p.ExitCode)" }
+      - name: Use larger desktop when supported for visual verification
+        shell: pwsh
+        run: python setup_test_display.py
       - name: Check GUI launches
         shell: pwsh
         run: |
