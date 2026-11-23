@@ -308,15 +308,15 @@ class MovieShrink(tk.Tk):
             face="segoeuiz.ttf" if bold and italic else ("segoeuib.ttf" if bold else "segoeui.ttf")
             try:return ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts",face),sz)
             except OSError:return ImageFont.load_default()
-        titlefont=font(66,True,True)
-        smallfont=font(25,True)
+        titlefont=font(85,True,True)
+        smallfont=font(29,True)
         bd=ImageDraw.Draw(banner)
-        bd.text((393,35),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
-        bd.text((389,30),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
+        bd.text((393,26),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
+        bd.text((389,21),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
         title_size=bd.textbbox((0,0),"MovieShrink",font=titlefont)
         wordx=389+title_size[2]-title_size[0]+10
-        bd.text((wordx+4,35),"Pro",font=titlefont,fill="#06101f",stroke_width=5,stroke_fill="#05132c")
-        bd.text((wordx,30),"Pro",font=titlefont,fill="#ffca44",stroke_width=1,stroke_fill="#ffe99c")
+        bd.text((wordx+4,26),"Pro",font=titlefont,fill="#06101f",stroke_width=5,stroke_fill="#05132c")
+        bd.text((wordx,21),"Pro",font=titlefont,fill="#ffca44",stroke_width=1,stroke_fill="#ffe99c")
         bd.text((394,132),"DVD / USB / MP4   •   Full HD 1080p & 4K",
                 font=smallfont,fill="#c5e8ff")
         # Right-hand badges shrink to compact marks on smaller laptop screens.
