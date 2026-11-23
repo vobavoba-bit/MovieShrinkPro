@@ -44,7 +44,9 @@ class MovieShrink(tk.Tk):
         self.preview_stop=threading.Event();self.preview_pause=threading.Event()
         self.preview_generation=0;self.preview_proc=None
         self.preview_enabled=False;self.preview_thread=None
-        self.ui();self.after(100,self.poll)
+        self.ui()
+        if hasattr(self,"brand_image"):self.iconphoto(True,self.brand_image)
+        self.after(100,self.poll)
         for v in (self.quality,self.size,self.format,self.audio):v.trace_add("write",self.update_quality_hint)
         self.size.trace_add("write",self.update_progress_target)
         self.update_quality_hint();self.update_progress_target()
