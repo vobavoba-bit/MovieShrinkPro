@@ -35,6 +35,9 @@ jobs:
           if (!$a -or !$b) { throw 'ffmpeg.exe or ffprobe.exe is missing' }
           Copy-Item $a.FullName bin/ffmpeg.exe
           Copy-Item $b.FullName bin/ffprobe.exe
+      - name: Exercise real video preview, queue and screenshot
+        shell: pwsh
+        run: python preview_integration.py
       - name: Generate Windows app icon from the MovieShrink Pro logo
         shell: pwsh
         run: |
@@ -96,5 +99,14 @@ jobs:
         with:
           name: MovieShrinkPro_Real_Large_UI
           path: MovieShrinkPro_Real_Large_Window.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload actual preview integration screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieShrinkPro_Real_TestVideo_Preview
+          path: MovieShrinkPro_Real_Preview_Test.png
           if-no-files-found: ignore
           retention-days: 30
