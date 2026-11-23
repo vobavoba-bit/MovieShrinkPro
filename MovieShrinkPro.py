@@ -106,6 +106,51 @@ class MovieShrink(tk.Tk):
         btn.bind("<Enter>",lambda e:btn.configure(image=hover_pic) if str(btn.cget("state"))=="normal" else None)
         btn.bind("<Leave>",lambda e:btn.configure(image=pic))
         return btn
+    def metallic_toolbar_button(self,parent,caption,action,symbol,width=204):
+        """Antialiased silver-blue ribbon control (not native flat ttk)."""
+        from PIL import Image,ImageDraw,ImageFont,ImageTk
+        h=42;W=width*2;H=h*2
+        def render(hover=False):
+            img=Image.new("RGBA",(W,H),(0,0,0,0))
+            d=ImageDraw.Draw(img)
+            rect=(3,3,W-4,H-4)
+            d.rounded_rectangle(rect,radius=12,fill="#afc7e1",outline="#4d82b6",width=3)
+            for y in range(7,H-7):
+                t=(y-7)/(H-14)
+                start=(247,252,255) if not hover else (230,249,255)
+                end=(172,200,228) if not hover else (137,192,238)
+                c=tuple(round(start[k]*(1-t)+end[k]*t) for k in range(3))
+                d.line((8,y,W-9,y),fill=c+(255,),width=1)
+            d.rounded_rectangle((5,5,W-6,H-6),radius=10,outline="#74a8d4",width=2)
+            d.line((14,13,W-16,13),fill="#ffffff",width=3)
+            # Draw icons ourselves; font support is not needed for these symbols.
+            iconx=33;icony=H//2
+            if symbol=="disc":
+                d.ellipse((iconx-20,icony-20,iconx+20,icony+20),fill="#3c9fe1",outline="#174e91",width=4)
+                d.ellipse((iconx-7,icony-7,iconx+7,icony+7),fill="#e8f4fb",outline="#155b98",width=2)
+            elif symbol=="folder":
+                d.rounded_rectangle((iconx-21,icony-13,iconx+24,icony+17),radius=4,fill="#ffbd22",outline="#a97506",width=3)
+                d.rectangle((iconx-17,icony-20,iconx+5,icony-12),fill="#ffd75c")
+            elif symbol=="usb":
+                d.rounded_rectangle((iconx-9,icony-22,iconx+9,icony+21),radius=4,fill="#4d94cc",outline="#1d4b7b",width=3)
+                d.rectangle((iconx-5,icony-26,iconx+5,icony-18),fill="#d8eafd")
+            elif symbol=="remove":
+                d.line((iconx-16,icony-15,iconx+16,icony+15),fill="#c72431",width=9)
+                d.line((iconx+16,icony-15,iconx-16,icony+15),fill="#c72431",width=9)
+            try:
+                f=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf"),24)
+            except OSError:f=ImageFont.load_default()
+            d.text((66,(H-30)/2),caption,font=f,fill="#173c61")
+            return ImageTk.PhotoImage(img.resize((width,h),Image.Resampling.LANCZOS))
+        normal=render();hot=render(True)
+        if not hasattr(self,"_styled_button_images"):self._styled_button_images=[]
+        self._styled_button_images.extend((normal,hot))
+        button=tk.Button(parent,image=normal,command=action,bg="#c7daee",
+                         activebackground="#c7daee",relief="flat",
+                         bd=0,highlightthickness=0,cursor="hand2")
+        button.bind("<Enter>",lambda e:button.configure(image=hot))
+        button.bind("<Leave>",lambda e:button.configure(image=normal))
+        return button
     def ui(self):
         """Functional DVD Shrink-inspired skin, responsive down to 970x640."""
         from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -168,9 +213,12 @@ class MovieShrink(tk.Tk):
                      padx=7,pady=6).pack(side="left",padx=2)
         bar=tk.Frame(self,bg="#c7daee",height=54,highlightbackground="#79a5c9",highlightthickness=1)
         bar.pack(side="top",fill="x");bar.pack_propagate(False)
-        for cap,act in (("◉  Προσθήκη DVD",self.adddvd),("▣  Προσθήκη φακέλου",self.addfolder),
-                        ("▤  Προσθήκη USB / MP4",self.addfiles),("✖  Αφαίρεση",self.remove)):
-            ttk.Button(bar,text=cap,command=act).pack(side="left",padx=(9,0),pady=8)
+        for cap,act,icon_id,bw in (("Προσθήκη DVD",self.adddvd,"disc",188),
+                                    ("Προσθήκη φακέλου",self.addfolder,"folder",214),
+                                    ("Προσθήκη USB / MP4",self.addfiles,"usb",220),
+                                    ("Αφαίρεση",self.remove,"remove",162)):
+            self.metallic_toolbar_button(bar,cap,act,icon_id,width=bw).pack(
+                side="left",padx=(8,0),pady=4)
         # Bottom is packed BEFORE the growing center: always remains visible.
         bottom=tk.Frame(self,bg=white,highlightbackground="#5987b9",highlightthickness=2)
         bottom.pack(side="bottom",fill="x",padx=8,pady=(3,6))
