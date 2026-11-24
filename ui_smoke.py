@@ -44,6 +44,19 @@ assert app.stop_btn.cget("image") != ""
 assert app.btn.winfo_manager() == "pack"
 assert app.stop_btn.winfo_manager() == "pack"
 assert app.btn.master == app.stop_btn.master
+assert app.btn.winfo_reqwidth() >= 210 and app.btn.winfo_reqheight() >= 48
+assert app.stop_btn.winfo_reqwidth() >= 210 and app.stop_btn.winfo_reqheight() >= 48
+assert len(app.btn._action_images) == 3
+assert len(app.stop_btn._action_images) == 3
+assert len(app.settings_tabs.tabs()) == 3
+assert app.quality_warning.get() == "", "No permanent Quality Guard description"
+app.size.set("4K")
+app.update_idletasks()
+assert "4K" in app.quality_warning.get()
+app.recommended_settings()
+app.update_idletasks()
+assert app.quality_warning.get() == ""
+
 assert app.btn.master == app.action_panel
 assert str(app.btn.pack_info()["side"]) == "top"
 assert str(app.stop_btn.pack_info()["side"]) == "top"
