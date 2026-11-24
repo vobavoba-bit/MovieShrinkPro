@@ -181,7 +181,7 @@ class MovieShrink(tk.Tk):
                                     radius=4,fill=(255,255,255,255))
             try:
                 font=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),
-                                                    "Fonts","segoeuib.ttf"),42)
+                                                    "Fonts","segoeuib.ttf"),60)
             except OSError:
                 font=ImageFont.load_default()
             bbox=d.textbbox((0,0),label,font=font)
@@ -250,7 +250,7 @@ class MovieShrink(tk.Tk):
                 d.ellipse((iconx-3,icony-12,iconx+3,icony-6),fill="white")
                 d.rounded_rectangle((iconx-3,icony-2,iconx+3,icony+14),radius=2,fill="white")
             try:
-                f=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf"),24)
+                f=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf"),30)
             except OSError:f=ImageFont.load_default()
             d.text((66,(H-30)/2),caption,font=f,fill="#173c61")
             return ImageTk.PhotoImage(img.resize((width,h),Image.Resampling.LANCZOS))
@@ -463,7 +463,7 @@ class MovieShrink(tk.Tk):
             h=tk.Frame(out,bg="#0c457e",height=30);h.pack(fill="x");h.pack_propagate(False)
             tk.Label(h,image=pic,bg="#0b467f",bd=0).place(x=0,y=0,relwidth=1,relheight=1)
             tk.Label(h,text=title,bg="#104c89",fg="white",
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=7,pady=2).place(x=8,y=4)
+                     font=("Segoe UI",11,"bold"),anchor="w",padx=7,pady=1).place(x=8,y=4)
             return out
         left=panel(0,"▣   Ουρά επεξεργασίας")
         center=panel(1,"▣   Ζωντανή προεπισκόπηση")
@@ -574,7 +574,7 @@ class MovieShrink(tk.Tk):
                          highlightbackground="#9dbfe1",highlightthickness=1)
             box.pack(fill="x",padx=2,pady=(2,7))
             tk.Label(box,text=title,bg="#c4dff7",fg=navy,anchor="w",
-                     font=("Segoe UI",10,"bold"),padx=9,pady=5).pack(fill="x")
+                     font=("Segoe UI",10,"bold"),padx=9,pady=4).pack(fill="x")
             return box
         def choices(box,var,entries):
             radios=[]
@@ -582,15 +582,15 @@ class MovieShrink(tk.Tk):
                 rb=tk.Radiobutton(box,text=label,variable=var,value=value,
                     bg="#f3f8ff",fg=ink,activebackground="#dceeff",
                     selectcolor="#e4f3ff",anchor="w",justify="left",
-                    font=("Segoe UI",9),highlightthickness=0,borderwidth=0,
-                    padx=8,pady=3)
+                    font=("Segoe UI",10),highlightthickness=0,borderwidth=0,
+                    padx=7,pady=2)
                 rb.pack(fill="x",padx=5)
                 radios.append((value,rb))
             def selected(*_):
                 for value,rb in radios:
                     is_selected=var.get()==value
                     rb.configure(bg="#b7ddff" if is_selected else "#f3f8ff",
-                                 font=("Segoe UI",9,"bold" if is_selected else "normal"))
+                                 font=("Segoe UI",10,"bold" if is_selected else "normal"))
             var.trace_add("write",selected)
             selected()
         choices(group(picture_form,"▣  Προφίλ ποιότητας"),self.quality,
