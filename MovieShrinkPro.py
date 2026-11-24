@@ -628,13 +628,10 @@ class MovieShrink(tk.Tk):
         self.preview_off_button.pack(side="left",padx=(0,2))
         self.preview_capture_button=ttk.Button(pc,text="▣",width=3,command=self.save_preview_frame,state="disabled",style="PreviewFrame.TButton")
         self.preview_capture_button.pack(side="left")
+        # State strings remain live, but avoid redundant explanatory rows under
+        # the player. This frees enough room to show real subtitle controls.
         self.preview_state=tk.StringVar(value="Κλειστή • εξοικονόμηση CPU")
-        tk.Label(center,textvariable=self.preview_state,bg=paper,fg="#406b94",
-                 font=("Segoe UI",9,"bold"),anchor="w",padx=7).pack(fill="x")
         self.current_detail=tk.StringVar(value="Επίλεξε ταινία από την ουρά")
-        tk.Label(center,textvariable=self.current_detail,bg=paper,fg=navy,
-                 font=("Segoe UI",9,"bold"),anchor="w",wraplength=295,
-                 justify="left",padx=7,pady=3).pack(fill="x")
         subs=tk.Frame(center,bg="#d3e7fa",highlightbackground="#8eb9dd",highlightthickness=1)
         subs.pack(fill="x",padx=5,pady=(2,3))
         tk.Label(subs,text="Aa   Εξωτερικοί υπότιτλοι SRT / ASS",bg="#b6d4f1",fg=navy,
