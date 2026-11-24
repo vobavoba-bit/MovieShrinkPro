@@ -581,11 +581,11 @@ class MovieShrink(tk.Tk):
                 (("Μέγιστη","Μέγιστη ποιότητα"),
                  ("Ισορροπημένη","Ισορροπημένο (προτεινόμενο)"),
                  ("Μικρότερο αρχείο","Μικρότερο αρχείο")))
-        choices(group(picture,"▣  Ανάλυση εξόδου"),self.size,
+        choices(group(picture_form,"▣  Ανάλυση εξόδου"),self.size,
                 (("Πρωτότυπη","Πρωτότυπη (χωρίς αλλαγή)"),
                  ("1080p","Full HD · 1920 × 1080"),
                  ("4K","Ultra HD · 3840 × 2160")))
-        choices(group(picture,"▣  Μορφή εξόδου"),self.format,
+        choices(group(picture_form,"▣  Μορφή εξόδου"),self.format,
                 (("MP4","MP4 (συμβατό)"),("MKV","MKV")))
         sound=group(audio_page,"♪  Μορφή ήχου")
         choices(sound,self.audio,
