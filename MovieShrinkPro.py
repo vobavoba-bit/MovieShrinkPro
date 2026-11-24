@@ -126,6 +126,7 @@ class MovieShrink(tk.Tk):
         self.preview_clock=tk.StringVar(value="00:00 / --:--")
         self.preview_seek_drag=False
         self.external_subtitles={}
+        self.smart_guard_enabled=tk.BooleanVar(value=True)
         self.subtitle_size=tk.StringVar(value="Μεσαίο (100%)")
         self.subtitle_position=tk.StringVar(value="Κάτω")
         self.subtitle_delay=tk.StringVar(value="0.0")
@@ -729,9 +730,33 @@ class MovieShrink(tk.Tk):
         guard=tk.Frame(footer,bg="#fff0c6",highlightbackground="#ddb655",
                        highlightthickness=1)
         guard.pack(fill="x",pady=(1,2))
-        tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffe09b",fg="#6a4706",
-                 anchor="w",font=("Segoe UI",10,"bold"),
-                 padx=8,pady=2).pack(fill="x")
+        guard_header=tk.Frame(guard,bg="#ffe09b")
+        guard_header.pack(fill="x")
+        tk.Label(guard_header,text="⚠  Smart Quality Guard",bg="#ffe09b",
+                 fg="#6a4706",font=("Segoe UI",10,"bold"),
+                 padx=8,pady=2).pack(side="left",fill="x",expand=True)
+        switch=tk.Canvas(guard_header,width=57,height=26,bg="#ffe09b",
+                         highlightthickness=0,cursor="hand2")
+        switch.pack(side="right",padx=7,pady=1)
+        def render_guard_switch(*_):
+            from PIL import Image,ImageDraw,ImageFont,ImageTk
+            enabled=self.smart_guard_enabled.get()
+            im=Image.new("RGBA",(114,52),(0,0,0,0))
+            d=ImageDraw.Draw(im)
+            d.rounded_rectangle((2,2,112,50),radius=24,
+                                fill="#14ad43" if enabled else "#8e9ea7",
+                                outline="#11823c" if enabled else "#68747b",width=3)
+            dotx=78 if enabled else 26
+            d.ellipse((dotx-18,8,dotx+18,44),
+                      fill="#ffffff",outline="#c8e3ef",width=3)
+            switch._skin=ImageTk.PhotoImage(im.resize((57,26),Image.Resampling.LANCZOS))
+            switch.delete("all")
+            switch.create_image(0,0,anchor="nw",image=switch._skin)
+        switch.bind("<Button-1>",lambda _:(self.smart_guard_enabled.set(not self.smart_guard_enabled.get()),
+                                           self.update_quality_hint()))
+        self.smart_guard_enabled.trace_add("write",render_guard_switch)
+        render_guard_switch()
+        self.guard_switch=switch
         self.quality_description=tk.StringVar()
         self.quality_warning=tk.StringVar()
         self.guard_message=tk.Label(guard,textvariable=self.quality_warning,
@@ -777,6 +802,10 @@ class MovieShrink(tk.Tk):
         if not hasattr(self,"quality_warning"):return
         # No permanent explanatory paragraph: warn only when a real risk applies.
         warning=""
+        if not self.smart_guard_enabled.get():
+            self.quality_warning.set("")
+            if hasattr(self,"guard_message"):self.guard_message.pack_forget()
+            return
         if self.size.get()=="4K":
             warning="4K: πολύ αργή μετατροπή · το upscaling δεν προσθέτει λεπτομέρεια."
         elif self.audio.get()=="Dolby Digital AC3":
@@ -1039,9 +1068,9 @@ class MovieShrink(tk.Tk):
         if not binary("ffmpeg.exe") or not binary("ffprobe.exe"):messagebox.showerror("Σφάλμα","Λείπουν τα ενσωματωμένα εργαλεία μετατροπής.");return
         try:
             P(self.output.get()).mkdir(parents=True,exist_ok=True)
-            if self.size.get()=="4K" and any(probe(x["path"])[2]<1080 for x in self.items):
+            if self.smart_guard_enabled.get() and self.size.get()=="4K" and any(probe(x["path"])[2]<1080 for x in self.items):
                 if not messagebox.askyesno("Smart Quality Guard","Το 4K upscaling δεν προσθέτει πραγματική λεπτομέρεια. Συνέχεια;"):return
-            if self.audio.get()=="Dolby Digital AC3" and any((probe(x["path"])[3] or {}).get("channels",0)<6 for x in self.items):
+            if self.smart_guard_enabled.get() and self.audio.get()=="Dolby Digital AC3" and any((probe(x["path"])[3] or {}).get("channels",0)<6 for x in self.items):
                 if not messagebox.askyesno("Smart Quality Guard","Μερικές ταινίες δεν έχουν ήχο 5.1. Δεν μπορούμε να δημιουργήσουμε πραγματικό surround. Συνέχεια;"):return
         except Exception as e:messagebox.showerror("Σφάλμα",str(e));return
         # Freeze all Tk values on the GUI thread. The transcoding worker must never
