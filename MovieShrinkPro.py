@@ -313,7 +313,7 @@ class MovieShrink(tk.Tk):
     def auto_layout(self,event):
         if event.widget is not self:return
         if hasattr(self,"preview_box"):
-            desired=max(84,min(270,event.height-570))
+            desired=max(98,min(263,event.height-537))
             if self.preview_box.cget("height")!=desired:
                 self.preview_box.configure(height=desired)
     def ui(self):
@@ -487,32 +487,59 @@ class MovieShrink(tk.Tk):
         for col,wt,minsize in ((0,33,280),(1,34,290),(2,33,290)):
             main.grid_columnconfigure(col,weight=wt,minsize=minsize)
         main.grid_rowconfigure(0,weight=1)
-        def panel(index,title):
-            out=tk.Frame(main,bg=paper,highlightbackground="#4b87bf",highlightthickness=2)
+        def panel(index,title,icon_kind):
+            out=tk.Frame(main,bg=paper,highlightbackground="#397da9",highlightthickness=2)
             out.grid(row=0,column=index,sticky="nsew",padx=3)
-            # Fully rendered glossy dark-blue section bar.
-            g=Image.new("RGB",(920,60))
-            dr=ImageDraw.Draw(g)
-            for y in range(60):
-                t=y/59
-                if t<.42:
-                    col=(17+int(13*t),101+int(44*t),180+int(35*t))
+            # Section header is a single image; text is baked into the gloss,
+            # so no overlapping solid-color labels break the visual gradient.
+            hdr=tk.Label(out,bg="#0b467f",bd=0,height=32)
+            hdr.pack(side="top",fill="x")
+            def redraw(e=None):
+                width=max(270,hdr.winfo_width())
+                sig=(width,title)
+                if getattr(hdr,"_sig",None)==sig:return
+                hdr._sig=sig
+                from PIL import Image,ImageDraw,ImageFont,ImageTk
+                scale=2;w=width*scale;h=66
+                im=Image.new("RGB",(w,h));draw=ImageDraw.Draw(im)
+                for y in range(h):
+                    f=y/max(1,h-1)
+                    if f<.35:
+                        top=(34,113,190);bot=(16,78,139)
+                        t=f/.35
+                    else:
+                        top=(16,78,139);bot=(4,48,100)
+                        t=(f-.35)/.65
+                    c=tuple(round(top[i]*(1-t)+bot[i]*t) for i in range(3))
+                    draw.line((0,y,w,y),fill=c)
+                draw.line((2,2,w-3,2),fill="#d4efff",width=3)
+                draw.line((2,h-3,w-3,h-3),fill="#002f68",width=3)
+                # Compact white panel pictograms.
+                draw.rounded_rectangle((17,17,52,49),radius=4,
+                                       outline="#eaf9ff",width=4)
+                if icon_kind=="queue":
+                    for yy in (23,33,43):
+                        draw.line((26,yy,45,yy),fill="#effaff",width=3)
+                elif icon_kind=="preview":
+                    draw.polygon([(28,24),(28,43),(44,34)],fill="#eafaff")
                 else:
-                    col=(7+int(4*t),50+int(20*t),107+int(11*t))
-                dr.line((0,y,920,y),fill=col)
-            dr.line((0,2,920,2),fill="#b6e5ff",width=2)
-            dr.line((0,57,920,57),fill="#0c3762",width=3)
-            pic=ImageTk.PhotoImage(g.resize((460,30),Image.Resampling.LANCZOS))
-            if not hasattr(self,"_panel_header_images"):self._panel_header_images=[]
-            self._panel_header_images.append(pic)
-            h=tk.Frame(out,bg="#0c457e",height=30);h.pack(fill="x");h.pack_propagate(False)
-            tk.Label(h,image=pic,bg="#0b467f",bd=0).place(x=0,y=0,relwidth=1,relheight=1)
-            tk.Label(h,text=title,bg="#104c89",fg="white",
-                     font=("Segoe UI",11,"bold"),anchor="w",padx=7,pady=1).place(x=8,y=4)
+                    draw.ellipse((26,25,43,42),outline="#eafaff",width=4)
+                    draw.ellipse((32,31,37,36),fill="#eafaff")
+                try:
+                    titlefont=ImageFont.truetype(
+                        os.path.join(os.environ.get("WINDIR","C:\\Windows"),
+                                     "Fonts","segoeuib.ttf"),27)
+                except OSError:titlefont=ImageFont.load_default()
+                draw.text((67,14),title,font=titlefont,fill="white",
+                          stroke_width=1,stroke_fill="#0b3660")
+                hdr._art=ImageTk.PhotoImage(im.resize((width,33),Image.Resampling.LANCZOS))
+                hdr.configure(image=hdr._art)
+            hdr.bind("<Configure>",redraw)
+            out._header=hdr
             return out
-        left=panel(0,"▣   Ουρά επεξεργασίας")
-        center=panel(1,"▣   Ζωντανή προεπισκόπηση")
-        right=panel(2,"⚙   Ρυθμίσεις εξόδου")
+        left=panel(0,"Ουρά επεξεργασίας","queue")
+        center=panel(1,"Ζωντανή προεπισκόπηση","preview")
+        right=panel(2,"Ρυθμίσεις εξόδου","settings")
         # Queue includes duration and source dimensions, populated asynchronously.
         lst=tk.Frame(left,bg=paper);lst.pack(fill="both",expand=True,padx=3,pady=(3,0))
         cols=("file","duration","resolution","pct","state")
@@ -538,7 +565,7 @@ class MovieShrink(tk.Tk):
         tk.Label(left,textvariable=self.queue_summary,bg="#cfe1f3",fg=navy,
                  font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=4).pack(side="bottom",fill="x")
         # Center preview + explicit enable/pause/off; subtitle copy is a real setting.
-        preview_box=tk.Frame(center,bg="#071525",height=195)
+        preview_box=tk.Frame(center,bg="#071525",height=220)
         self.preview_box=preview_box
         preview_box.pack(fill="x",padx=5,pady=(4,1));preview_box.pack_propagate(False)
         self.image=tk.Label(preview_box,text="▶\nΠροεπισκόπηση απενεργοποιημένη",
