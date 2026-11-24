@@ -971,15 +971,15 @@ class MovieShrink(tk.Tk):
                         duration,_,_,_=probe(path)
                         self.events.put(("preview_duration",generation,duration))
                     except Exception:pass
-                # 320x180, 5 fps limits CPU load on older Intel HD 4000 systems.
+                # 480x270 at 5 fps: crisp at window size while remaining CPU-conscious.
                 cmd=[ff,"-hide_banner","-loglevel","error","-ss",str(start_time),"-i",str(path),
-                     "-an","-vf","fps=5,scale=320:180:force_original_aspect_ratio=decrease,"
-                     "pad=320:180:(ow-iw)/2:(oh-ih)/2",
+                     "-an","-vf","fps=5,scale=480:270:force_original_aspect_ratio=decrease,"
+                     "pad=480:270:(ow-iw)/2:(oh-ih)/2",
                      "-pix_fmt","rgb24","-f","rawvideo","pipe:1"]
                 proc=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
                                       creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
                 self.preview_proc=proc
-                frame_bytes=320*180*3
+                frame_bytes=480*270*3
                 frame_index=0
                 while not stop.is_set() and generation==self.preview_generation:
                     if self.preview_pause.is_set():
@@ -1123,7 +1123,7 @@ class MovieShrink(tk.Tk):
                     _,generation,frame,position=event
                     if generation==self.preview_generation and self.preview_enabled:
                         from PIL import Image, ImageTk
-                        im=Image.frombytes("RGB",(320,180),frame)
+                        im=Image.frombytes("RGB",(480,270),frame)
                         self.current_preview_frame=im
                         from PIL import ImageOps
                         bounds=(max(32,self.image.winfo_width()-4),max(32,self.image.winfo_height()-4))
