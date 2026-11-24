@@ -471,18 +471,18 @@ class MovieShrink(tk.Tk):
                 side="left",padx=(5,0),pady=4)
         # Bottom is packed BEFORE the growing center: always remains visible.
         bottom=tk.Frame(self,bg=white,highlightbackground="#5987b9",highlightthickness=2)
-        bottom.pack(side="bottom",fill="x",padx=8,pady=(3,6))
+        bottom.pack(side="bottom",fill="x",padx=8,pady=(2,3))
         tk.Label(bottom,text="▥   ΠΡΟΟΔΟΣ ΜΕΤΑΤΡΟΠΗΣ",bg="#0c477d",fg="white",
-                 font=("Segoe UI",11,"bold"),anchor="w",padx=11,pady=4).pack(fill="x")
-        inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(2,0))
+                 font=("Segoe UI",11,"bold"),anchor="w",padx=11,pady=3).pack(fill="x")
+        inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(1,0))
         # Single pair of main actions: vertical, right-aligned, with no duplicates.
         controls=tk.Frame(inner,bg="#d9eafd",highlightbackground="#638cb7",
-                          highlightthickness=2,padx=8,pady=6)
+                          highlightthickness=2,padx=7,pady=4)
         controls.pack(side="right",padx=(8,0),pady=(0,1))
         self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
                                     ("#62eb77","#08772e","#075322"),width=215,height=49)
-        self.btn.pack(side="top",pady=(0,5),anchor="center")
+        self.btn.pack(side="top",pady=(0,3),anchor="center")
         self.stop_btn=self.glossy_button(controls,"ΔΙΑΚΟΠΗ",self.stop,
                                          ("#ff8888","#b00920","#790719"),width=215,height=49)
         self.stop_btn.pack(side="top",anchor="center")
@@ -498,7 +498,7 @@ class MovieShrink(tk.Tk):
             self.cinema_progressbar(barrow,percentage,
                                     "green" if percentage is self.pct else "blue").pack(
                                         side="left",fill="x",expand=True,pady=3)
-        foot=tk.Frame(bottom,bg=white);foot.pack(fill="x",padx=10,pady=(1,2))
+        foot=tk.Frame(bottom,bg=white);foot.pack(fill="x",padx=10,pady=(0,1))
         tk.Label(foot,textvariable=self.status,bg=white,fg="#23547e",
                  font=("Segoe UI",9,"bold"),anchor="w").pack(side="left")
         tk.Label(foot,textvariable=self.metrics,bg=white,fg="#23547e",
@@ -678,7 +678,7 @@ class MovieShrink(tk.Tk):
                     bg="#f3f8ff",fg=ink,activebackground="#dceeff",
                     selectcolor="#e4f3ff",anchor="w",justify="left",
                     font=("Segoe UI",10),highlightthickness=0,borderwidth=0,
-                    padx=7,pady=2)
+                    padx=7,pady=1)
                 rb.pack(fill="x",padx=5)
                 radios.append((value,rb))
             def selected(*_):
@@ -724,14 +724,14 @@ class MovieShrink(tk.Tk):
 
         # Always-visible compact footer. The guard shows only real warnings.
         footer=tk.Frame(right,bg=paper)
-        footer.pack(side="bottom",fill="x",padx=6,pady=(0,4))
+        footer.pack(side="bottom",fill="x",padx=6,pady=(0,2))
         settings_root.pack(side="top",fill="both",expand=True,padx=6,pady=(3,2))
         guard=tk.Frame(footer,bg="#fff0c6",highlightbackground="#ddb655",
                        highlightthickness=1)
-        guard.pack(fill="x",pady=(1,5))
+        guard.pack(fill="x",pady=(1,2))
         tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffe09b",fg="#6a4706",
                  anchor="w",font=("Segoe UI",10,"bold"),
-                 padx=8,pady=4).pack(fill="x")
+                 padx=8,pady=2).pack(fill="x")
         self.quality_description=tk.StringVar()
         self.quality_warning=tk.StringVar()
         self.guard_message=tk.Label(guard,textvariable=self.quality_warning,
@@ -739,7 +739,7 @@ class MovieShrink(tk.Tk):
                  anchor="w",justify="left",wraplength=295,padx=8,pady=3)
         self.guard_message.pack(fill="x")
         actions=tk.Frame(footer,bg=paper)
-        actions.pack(fill="x",pady=(1,4))
+        actions.pack(fill="x",pady=(0,2))
         ttk.Button(actions,text="✓ Προτεινόμενες",
                    command=self.recommended_settings).pack(
                        side="left",fill="x",expand=True,padx=(0,3))
@@ -748,14 +748,14 @@ class MovieShrink(tk.Tk):
                        side="left",fill="x",expand=True,padx=(3,0))
         location=tk.Frame(footer,bg="#d4e7f8",highlightbackground="#a1c0db",
                           highlightthickness=1)
-        location.pack(fill="x",pady=(2,0))
-        tk.Label(location,text="▣  Φάκελος εξόδου",bg="#d4e7f8",fg=navy,
-                 font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=3).pack(fill="x")
-        loc_row=tk.Frame(location,bg="#d4e7f8")
-        loc_row.pack(fill="x",padx=5,pady=(0,5))
-        ttk.Entry(loc_row,textvariable=self.output).pack(
-                 side="left",fill="x",expand=True,padx=(0,4))
-        ttk.Button(loc_row,text="…",width=2,command=self.destination).pack(side="right")
+        location.pack(fill="x",pady=(1,0))
+        tk.Label(location,text="▣ Έξοδος",bg="#d4e7f8",fg=navy,
+                 font=("Segoe UI",9,"bold"),width=9,anchor="w").pack(
+                     side="left",padx=(5,2))
+        ttk.Button(location,text="…",width=2,command=self.destination).pack(
+                     side="right",padx=(1,4),pady=3)
+        ttk.Entry(location,textvariable=self.output).pack(
+                     side="left",fill="x",expand=True,padx=(0,3),pady=3)
     def open_settings(self):
         self.settings_tabs.select(0)
         self.settings_tabs.focus_set()
