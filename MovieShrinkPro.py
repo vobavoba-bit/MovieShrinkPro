@@ -110,6 +110,7 @@ class MovieShrink(tk.Tk):
         self.geometry(f"{window_w}x{window_h}+12+12")
         self.minsize(950,610)
         self.items=[];self.events=queue.Queue();self.worker=None;self.process=None;self.stopflag=False
+        self.embedded_banner_loaded=False
         self.quality=tk.StringVar(value="Ισορροπημένη");self.size=tk.StringVar(value="1080p")
         self.audio=tk.StringVar(value="AAC Stereo");self.format=tk.StringVar(value="MP4")
         self.output=tk.StringVar(value=str(P.home()/"Videos"/"MovieShrinkPro"))
@@ -460,6 +461,7 @@ class MovieShrink(tk.Tk):
                         if len(raw)==length:
                             original=Image.open(io.BytesIO(raw)).convert("RGB")
                             banner=original.resize((W,H),Image.Resampling.LANCZOS)
+                            self.embedded_banner_loaded=True
             except Exception:
                 pass
         self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,120),Image.Resampling.LANCZOS))
@@ -1228,6 +1230,10 @@ class MovieShrink(tk.Tk):
 if __name__=="__main__":
     if "--self-test" in sys.argv:sys.exit(self_test())
     app=MovieShrink()
+    if "--verify-banner" in sys.argv:
+        status=0 if app.embedded_banner_loaded else 3
+        app.destroy()
+        sys.exit(status)
     if os.name=="nt":
         try:app.state("zoomed")
         except tk.TclError:pass
