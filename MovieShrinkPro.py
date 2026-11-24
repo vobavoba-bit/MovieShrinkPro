@@ -140,61 +140,77 @@ class MovieShrink(tk.Tk):
         self.update_quality_hint();self.update_progress_target();self.update_progress_labels()
         self.protocol("WM_DELETE_WINDOW",self.close_app)
         self.bind("<Configure>",self.auto_layout)
-    def glossy_button(self,parent,label,command,colors,width=152,height=52):
-        """Real rounded anti-aliased button images; Windows Tk draws exact pixels."""
-        from PIL import Image, ImageDraw, ImageFont, ImageTk
-        import tkinter.font as tkfont
-        import math
-        normal_top,normal_bottom,outline=colors
-        def rgb(h):return tuple(int(h[i:i+2],16) for i in (1,3,5))
-        def mix(a,b,t):return tuple(round(a[i]*(1-t)+b[i]*t) for i in range(3))
-        def artwork(hover=False):
-            top=rgb(normal_top);bottom=rgb(normal_bottom)
-            if hover:
-                top=mix(top,(255,255,255),.18)
-                bottom=mix(bottom,(255,255,255),.10)
-            im=Image.new("RGBA",(width*2,height*2),(0,0,0,0))
-            draw=ImageDraw.Draw(im)
-            w,h=im.size
-            mask=Image.new("L",(w,h),0)
-            md=ImageDraw.Draw(mask)
-            md.rounded_rectangle((2,2,w-3,h-3),radius=20,fill=255)
-            gradient=Image.new("RGBA",(w,h))
-            gd=ImageDraw.Draw(gradient)
+    def glossy_button(self,parent,label,command,colors,width=218,height=48):
+        """Large crisp beveled action control with true gradient and hover/disabled skins."""
+        from PIL import Image,ImageDraw,ImageFont,ImageTk
+        top_hex,bottom_hex,outline_hex=colors
+        def rgb(c):return tuple(int(c[i:i+2],16) for i in (1,3,5))
+        def blend(a,b,t):return tuple(round(a[k]*(1-t)+b[k]*t) for k in range(3))
+        def art(mode="normal"):
+            k=3;w=width*k;h=height*k
+            im=Image.new("RGBA",(w,h),(0,0,0,0))
+            d=ImageDraw.Draw(im)
+            # Shadow, inset border and a polished two-stop face.
+            d.rounded_rectangle((4,7,w-5,h-3),radius=28,fill=(5,22,37,105))
+            t=rgb(top_hex);bottom=rgb(bottom_hex)
+            if mode=="hover":
+                t=blend(t,(255,255,255),.22);bottom=blend(bottom,(255,255,255),.15)
+            if mode=="disabled":
+                t=blend(t,(195,206,215),.66);bottom=blend(bottom,(155,170,185),.66)
+            border=rgb(outline_hex)
+            d.rounded_rectangle((3,3,w-5,h-9),radius=26,fill=border+(255,))
+            fill=Image.new("RGB",(w,h))
+            fd=ImageDraw.Draw(fill)
             for y in range(h):
-                t=y/max(1,h-1)
-                col=mix(top,bottom,t)
-                gd.line((0,y,w,y),fill=col+(255,))
-            im.paste(gradient,(0,0),mask)
-            draw=ImageDraw.Draw(im)
-            draw.rounded_rectangle((2,2,w-3,h-3),radius=20,outline=rgb(outline)+(255,),width=4)
-            draw.arc((9,6,w-10,h-12),181,358,fill=(255,255,255,145),width=3)
-            try:
-                font_path=os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts","segoeuib.ttf")
-                font=ImageFont.truetype(font_path,26)
-            except OSError:
-                try:font=ImageFont.truetype("DejaVuSans-Bold.ttf",24)
-                except OSError:font=ImageFont.load_default()
-            bbox=draw.textbbox((0,0),label,font=font)
-            x=(w-(bbox[2]-bbox[0])+48)/2
-            y=(h-(bbox[3]-bbox[1]))/2-bbox[1]
+                fraction=y/max(1,h-1)
+                frac=fraction/.48*.55 if fraction<.48 else .55+((fraction-.48)/.52)*.45
+                fd.line((0,y,w,y),fill=blend(t,bottom,frac))
+            mask=Image.new("L",(w,h),0)
+            ImageDraw.Draw(mask).rounded_rectangle((8,8,w-10,h-14),radius=21,fill=255)
+            im.paste(fill,(0,0),mask)
+            d=ImageDraw.Draw(im)
+            d.rounded_rectangle((9,9,w-11,h//2),radius=18,
+                                outline=(241,253,255,130),width=4)
+            d.line((30,h-19,w-32,h-19),fill=(0,0,0,75),width=3)
+            iconx=51;icony=h//2-3
             if label=="ΕΝΑΡΞΗ":
-                draw.polygon([(28,30),(28,76),(65,53)],fill=(255,255,255,245))
-            elif label=="ΔΙΑΚΟΠΗ":
-                draw.rounded_rectangle((27,35,61,69),radius=3,fill=(255,255,255,245))
-            draw.text((x,y+2),label,font=font,fill=(0,0,0,80))
-            draw.text((x,y),label,font=font,fill=(255,255,255,255))
+                d.polygon([(iconx-18,icony-28),(iconx-18,icony+29),
+                           (iconx+29,icony)],fill=(255,255,255,255))
+            else:
+                d.rounded_rectangle((iconx-21,icony-23,iconx+23,icony+22),
+                                    radius=4,fill=(255,255,255,255))
+            try:
+                font=ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),
+                                                    "Fonts","segoeuib.ttf"),42)
+            except OSError:
+                font=ImageFont.load_default()
+            bbox=d.textbbox((0,0),label,font=font)
+            tw=bbox[2]-bbox[0];th=bbox[3]-bbox[1]
+            cx=(w+105-tw)/2
+            cy=(h-th)/2-bbox[1]-5
+            d.text((cx,cy+4),label,font=font,fill=(1,13,32,130))
+            d.text((cx,cy),label,font=font,fill="white",
+                   stroke_width=1,stroke_fill="#f3ffff")
             return ImageTk.PhotoImage(im.resize((width,height),Image.Resampling.LANCZOS))
-        pic=artwork();hover_pic=artwork(True)
+        normal,hover,disabled=art(),art("hover"),art("disabled")
         if not hasattr(self,"_styled_button_images"):self._styled_button_images=[]
-        self._styled_button_images.extend((pic,hover_pic))
-        btn=tk.Button(parent,image=pic,command=command,bd=0,relief="flat",
-                      highlightthickness=0,overrelief="flat",bg="#eef5fc",
-                      activebackground="#eef5fc",cursor="hand2",
-                      disabledforeground="#d4e4e1")
-        btn.bind("<Enter>",lambda e:btn.configure(image=hover_pic) if str(btn.cget("state"))=="normal" else None)
-        btn.bind("<Leave>",lambda e:btn.configure(image=pic))
-        return btn
+        self._styled_button_images.extend((normal,hover,disabled))
+        button=tk.Button(parent,image=normal,command=command,relief="flat",bd=0,
+                         bg="#d9eafd",activebackground="#d9eafd",
+                         highlightthickness=0,cursor="hand2")
+        button._action_images=(normal,hover,disabled)
+        def sync_skin(_=None):
+            button.configure(image=disabled if str(button.cget("state"))=="disabled"
+                             else hover if getattr(button,"_is_hovered",False) else normal)
+        button._update_skin=sync_skin
+        def enter(_):
+            button._is_hovered=True
+            sync_skin()
+        def leave(_):
+            button._is_hovered=False
+            sync_skin()
+        button.bind("<Enter>",enter);button.bind("<Leave>",leave)
+        return button
     def metallic_toolbar_button(self,parent,caption,action,symbol,width=204):
         """Antialiased silver-blue ribbon control (not native flat ttk)."""
         from PIL import Image,ImageDraw,ImageFont,ImageTk
@@ -399,10 +415,10 @@ class MovieShrink(tk.Tk):
         controls.pack(side="right",padx=(8,0),pady=(0,1))
         self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
-                                    ("#62eb77","#08772e","#075322"),width=184,height=39)
-        self.btn.pack(side="top",pady=(0,3),anchor="center")
+                                    ("#62eb77","#08772e","#075322"),width=215,height=49)
+        self.btn.pack(side="top",pady=(0,5),anchor="center")
         self.stop_btn=self.glossy_button(controls,"ΔΙΑΚΟΠΗ",self.stop,
-                                         ("#ff8888","#b00920","#790719"),width=184,height=39)
+                                         ("#ff8888","#b00920","#790719"),width=215,height=49)
         self.stop_btn.pack(side="top",anchor="center")
         bframe=tk.Frame(inner,bg=white);bframe.pack(side="left",fill="both",expand=True)
         for var,style_name,percentage,percentage_text in (
@@ -932,7 +948,7 @@ class MovieShrink(tk.Tk):
                      custom_subtitles=dict(self.external_subtitles))
         except tk.TclError as exc:
             messagebox.showerror("Ρυθμίσεις",str(exc));return
-        self.stopflag=False;self.btn.configure(state="disabled")
+        self.stopflag=False;self.btn.configure(state="disabled");self.btn._update_skin()
         self.worker=threading.Thread(target=self.convert,args=(cfg,),daemon=True);self.worker.start()
     def stop(self):
         self.stopflag=True
@@ -1059,7 +1075,7 @@ class MovieShrink(tk.Tk):
                     self.pct.set(pct);self.status.set(f'Ταινία {i+1}/{len(self.items)}: {self.items[i]["path"].name} — {pct:.1f}%')
                     self.metrics.set(f"Ταχύτητα: {fps:.1f} FPS | Υπόλοιπο: περίπου {eta/60:.0f} λεπτά")
                 elif event[0]=="done":
-                    self.btn.configure(state="normal")
+                    self.btn.configure(state="normal");self.btn._update_skin()
                     self.status.set(f'Ολοκληρώθηκαν {sum(x["state"]=="Έτοιμο" for x in self.items)}/{len(self.items)} ταινίες')
                 if event[0] in ("progress","refresh","done"):self.refresh()
         except queue.Empty:pass
