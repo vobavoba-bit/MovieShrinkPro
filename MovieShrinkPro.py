@@ -909,12 +909,24 @@ class MovieShrink(tk.Tk):
             if self.audio.get()=="Dolby Digital AC3" and any((probe(x["path"])[3] or {}).get("channels",0)<6 for x in self.items):
                 if not messagebox.askyesno("Smart Quality Guard","Μερικές ταινίες δεν έχουν ήχο 5.1. Δεν μπορούμε να δημιουργήσουμε πραγματικό surround. Συνέχεια;"):return
         except Exception as e:messagebox.showerror("Σφάλμα",str(e));return
+        # Freeze all Tk values on the GUI thread. The transcoding worker must never
+        # read Tk variables, which can fail with "main thread is not in main loop".
+        try:
+            cfg=dict(output=self.output.get(),size=self.size.get(),audio=self.audio.get(),
+                     format=self.format.get(),quality=self.quality.get(),
+                     copy_subtitles=self.copy_subtitles.get(),
+                     subtitle_size=self.subtitle_size.get(),
+                     subtitle_position=self.subtitle_position.get(),
+                     subtitle_delay=self.subtitle_delay.get(),
+                     custom_subtitles=dict(self.external_subtitles))
+        except tk.TclError as exc:
+            messagebox.showerror("Ρυθμίσεις",str(exc));return
         self.stopflag=False;self.btn.configure(state="disabled")
-        self.worker=threading.Thread(target=self.convert,daemon=True);self.worker.start()
+        self.worker=threading.Thread(target=self.convert,args=(cfg,),daemon=True);self.worker.start()
     def stop(self):
         self.stopflag=True
         if self.process and self.process.poll() is None:self.process.terminate()
-    def convert(self):
+    def convert(self,cfg):
         for i,x in enumerate(self.items):
             if self.stopflag:break
             if x["state"]=="Έτοιμο":continue
@@ -922,20 +934,20 @@ class MovieShrink(tk.Tk):
             try:
                 source=x["path"];duration,w,h,a=probe(source);x["state"]="Επεξεργασία"
                 src_label=f"{w}×{h}" + (f" ({h}p)" if h in (480,576,720,1080,1440,2160) else "")
-                dest_label=self.size.get()
+                dest_label=cfg["size"]
                 if dest_label=="Πρωτότυπη":dest_label=f"{h}p (χωρίς αλλαγή ανάλυσης)"
                 self.events.put(("resolution",i,src_label,dest_label))
-                suffix=".mp4" if self.format.get()=="MP4" else ".mkv"
-                out=P(self.output.get())/(source.stem+(" (4K)" if self.size.get()=="4K" else " (1080p)" if self.size.get()=="1080p" else "")+suffix)
+                suffix=".mp4" if cfg["format"]=="MP4" else ".mkv"
+                out=P(cfg["output"])/(source.stem+(" (4K)" if cfg["size"]=="4K" else " (1080p)" if cfg["size"]=="1080p" else "")+suffix)
                 if out.resolve()==source.resolve():raise RuntimeError("Η έξοδος συμπίπτει με την πηγή.")
                 if out.exists():out=out.with_name(out.stem+"_"+str(int(time.time()))+suffix)
                 tmp=out.with_name(out.stem+".partial"+suffix)
-                cmd=[binary("ffmpeg.exe"),"-y","-hide_banner","-i",str(source),"-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf",str({"Μέγιστη":18,"Ισορροπημένη":21,"Μικρότερο αρχείο":25}[self.quality.get()]),"-pix_fmt","yuv420p"]
-                size=self.size.get()
+                cmd=[binary("ffmpeg.exe"),"-y","-hide_banner","-i",str(source),"-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf",str({"Μέγιστη":18,"Ισορροπημένη":21,"Μικρότερο αρχείο":25}[cfg["quality"]]),"-pix_fmt","yuv420p"]
+                size=cfg["size"]
                 if size!="Πρωτότυπη":
                     width,height=(1920,1080) if size=="1080p" else (3840,2160)
                     cmd+=["-vf",f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"]
-                audio=self.audio.get()
+                audio=cfg["audio"]
                 if audio=="Αρχικός ήχος":cmd+=["-c:a","copy"]
                 elif audio=="Dolby Digital AC3":cmd+=["-c:a","ac3","-b:a","384k"]
                 else:cmd+=["-c:a","aac","-b:a","192k","-ac","2"]
@@ -962,12 +974,12 @@ class MovieShrink(tk.Tk):
                 if duration>2 and outduration<duration*.90:raise RuntimeError("Ελλιπές τελικό βίντεο.")
                 if a and not outaudio:raise RuntimeError("Λείπει ο ήχος από το τελικό αρχείο.")
                 tmp.rename(out)
-                sub=self.sub(source)
-                if sub and self.copy_subtitles.get():
-                    size_text=self.subtitle_size.get()
+                sub=cfg["custom_subtitles"].get(str(source)) or self.sub(source)
+                if sub and cfg["copy_subtitles"]:
+                    size_text=cfg["subtitle_size"]
                     size_pct=int(re.search(r"(\d+)%",size_text).group(1))
-                    pos=self.subtitle_position.get()
-                    try:delay=float(self.subtitle_delay.get().replace(",","."))
+                    pos=cfg["subtitle_position"]
+                    try:delay=float(cfg["subtitle_delay"].replace(",","."))
                     except ValueError:raise ValueError("Η καθυστέρηση υποτίτλων πρέπει να είναι αριθμός.")
                     if sub.suffix.lower()==".srt" and (size_pct!=100 or pos!="Κάτω" or abs(delay)>.0001):
                         style_srt_as_ass(sub,out.with_suffix(".ass"),size_pct,pos,delay)
