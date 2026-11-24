@@ -347,7 +347,7 @@ class MovieShrink(tk.Tk):
         # All pixels, labels and symbols belong to the actual interactive application.
         from PIL import ImageFilter
         import math
-        banner_width=min(1480,max(950,self.winfo_screenwidth()-26))
+        banner_width=min(1480,max(950,self.winfo_screenwidth()))
         W,H=banner_width*2,236
         banner=Image.new("RGB",(W,H))
         pix=ImageDraw.Draw(banner)
@@ -430,8 +430,29 @@ class MovieShrink(tk.Tk):
             tx=rx+(bw-(bbox[2]-bbox[0]))/2
             bd.text((tx,83),label,font=badgefont,fill="#ffd75c" if is_gold else "#ffffff")
             rx+=bw+12
-        self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,104),Image.Resampling.LANCZOS))
-        head=tk.Frame(self,bg="#071a35",height=104)
+        # Optional embedded reference banner: kept *inside* the single-file EXE.
+        # The bootloader is independently tested with this archive extension.
+        if getattr(sys,"frozen",False):
+            try:
+                import struct,io
+                marker=b"MSPREFBANNER\x00"
+                exe_path=P(sys.executable)
+                with exe_path.open("rb") as stream:
+                    stream.seek(max(0,exe_path.stat().st_size-300000))
+                    tail=stream.read()
+                at=tail.rfind(marker)
+                if at>=0:
+                    at+=len(marker)
+                    length=struct.unpack(">I",tail[at:at+4])[0]
+                    if 1024<=length<=250000:
+                        raw=tail[at+4:at+4+length]
+                        if len(raw)==length:
+                            original=Image.open(io.BytesIO(raw)).convert("RGB")
+                            banner=original.resize((W,H),Image.Resampling.LANCZOS)
+            except Exception:
+                pass
+        self.header_img=ImageTk.PhotoImage(banner.convert("RGB").resize((banner_width,120),Image.Resampling.LANCZOS))
+        head=tk.Frame(self,bg="#071a35",height=120)
         head.pack(side="top",fill="x");head.pack_propagate(False)
         tk.Label(head,image=self.header_img,bg="#071a35",bd=0,anchor="nw").pack(fill="both",expand=True)
         bar=tk.Frame(self,bg="#c7daee",height=49,highlightbackground="#79a5c9",highlightthickness=1)
