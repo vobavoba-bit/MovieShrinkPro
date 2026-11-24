@@ -79,8 +79,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           python -c "from PIL import Image; i=Image.open('MovieShrinkPro_Real_Large_Window.png'); w,h=i.size; i.crop((0,30,w,min(h,150))).save('banner_smoke.jpg',quality=80)"
-          python embed_banner.py dist/MovieShrinkPro.exe banner_smoke.jpg
-          $exe = (Resolve-Path 'dist/MovieShrinkPro.exe').Path
+          New-Item -ItemType Directory -Force -Path dist/embedded | Out-Null
+          Copy-Item dist/MovieShrinkPro.exe dist/embedded/MovieShrinkPro.exe
+          python embed_banner.py dist/embedded/MovieShrinkPro.exe banner_smoke.jpg
+          $exe = (Resolve-Path 'dist/embedded/MovieShrinkPro.exe').Path
           $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Embedded-banner self-test failed with $($p.ExitCode)" }
           $gui = Start-Process -FilePath $exe -PassThru
@@ -91,7 +93,7 @@ jobs:
       - name: Create download ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/MovieShrinkPro.exe -DestinationPath MovieShrinkPro_Windows10_x64.zip
+          Compress-Archive -Path dist/embedded/MovieShrinkPro.exe -DestinationPath MovieShrinkPro_Windows10_x64.zip
       - uses: actions/upload-artifact@v4
         with:
           name: MovieShrinkPro_Windows10_x64
