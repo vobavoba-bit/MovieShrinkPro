@@ -525,96 +525,118 @@ class MovieShrink(tk.Tk):
         ttk.Checkbutton(subrow,text="Χρήση υποτίτλων",
                         variable=self.copy_subtitles).pack(side="left")
         ttk.Button(subrow,text="📂 SRT / ASS",command=self.browse_subtitle).pack(side="right")
-        # Right settings in a single vertical pane, not hidden in tab pages.
-        # Keep Quality Guard and action controls visible; scroll only detailed settings.
-        pinned=tk.Frame(right,bg=paper)
-        pinned.pack(side="bottom",fill="x",padx=5,pady=(1,4))
-        wrap=tk.Frame(right,bg=paper);wrap.pack(side="top",fill="both",expand=True,padx=(4,2),pady=3)
-        sc=tk.Scrollbar(wrap,orient="vertical");sc.pack(side="right",fill="y")
-        canvas=tk.Canvas(wrap,bg=paper,highlightthickness=0,yscrollcommand=sc.set)
-        canvas.pack(side="left",fill="both",expand=True)
-        self.settings_canvas=canvas
-        sc.configure(command=canvas.yview)
-        form=tk.Frame(canvas,bg=paper)
-        fid=canvas.create_window((0,0),window=form,anchor="nw")
-        form.bind("<Configure>",lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>",lambda e:canvas.itemconfigure(fid,width=e.width))
-        canvas.bind("<MouseWheel>",lambda e:canvas.yview_scroll(-int(e.delta/120),"units"))
-        def section(title):
-            tk.Label(form,text=title,bg="#b8d7f3",fg=navy,
-                     font=("Segoe UI",10,"bold"),anchor="w",padx=6,pady=2).pack(fill="x",pady=(2,1))
-        def choose(var,entries):
-            rows=[]
+        # Clearly separated settings tabs, without scrolling through one huge form.
+        settings_root=tk.Frame(right,bg=paper)
+        settings_root.pack(fill="both",expand=True,padx=6,pady=(5,3))
+        style.configure("Output.TNotebook",background="#c4dcf5",borderwidth=1)
+        style.configure("Output.TNotebook.Tab",font=("Segoe UI",10,"bold"),
+                        padding=(10,6),background="#c9dff3",foreground=navy)
+        style.map("Output.TNotebook.Tab",
+                  background=[("selected","#f8fbff"),("active","#deefff")],
+                  foreground=[("selected","#0a467f")])
+        tabs=ttk.Notebook(settings_root,style="Output.TNotebook")
+        tabs.pack(side="top",fill="both",expand=True)
+        self.settings_tabs=tabs
+        picture=tk.Frame(tabs,bg=paper,padx=5,pady=5)
+        audio_page=tk.Frame(tabs,bg=paper,padx=5,pady=5)
+        subtitle_page=tk.Frame(tabs,bg=paper,padx=5,pady=5)
+        tabs.add(picture,text="▣ Εικόνα")
+        tabs.add(audio_page,text="♪ Ήχος")
+        tabs.add(subtitle_page,text="Aa Υπότιτλοι")
+        def group(parent,title):
+            box=tk.Frame(parent,bg="#f3f8ff",
+                         highlightbackground="#9dbfe1",highlightthickness=1)
+            box.pack(fill="x",padx=2,pady=(2,7))
+            tk.Label(box,text=title,bg="#c4dff7",fg=navy,anchor="w",
+                     font=("Segoe UI",10,"bold"),padx=9,pady=5).pack(fill="x")
+            return box
+        def choices(box,var,entries):
+            radios=[]
             for value,label in entries:
-                button=tk.Radiobutton(form,text=label,variable=var,value=value,
-                                     bg=paper,fg=ink,activebackground="#a6d6fc",
-                                     selectcolor="#daedff",anchor="w",justify="left",
-                                     font=("Segoe UI",9),borderwidth=0,
-                                     highlightthickness=0,padx=6,pady=0)
-                button.pack(fill="x",padx=8,pady=0)
-                rows.append((value,button))
-            def refresh_choices(*_):
-                for value,button in rows:
-                    active=var.get()==value
-                    button.configure(bg="#a8d7ff" if active else paper,
-                                     font=("Segoe UI",9,"bold" if active else "normal"))
-            var.trace_add("write",refresh_choices)
-            refresh_choices()
-        section("▣  Προφίλ ποιότητας")
-        choose(self.quality,(("Μέγιστη","Μέγιστη ποιότητα"),("Ισορροπημένη","Ισορροπημένο (προτεινόμενο)"),
-                             ("Μικρότερο αρχείο","Μικρότερο αρχείο")))
-        section("▣  Ανάλυση εξόδου")
-        choose(self.size,(("Πρωτότυπη","Πρωτότυπη"),("1080p","1080p (1920 × 1080)"),
-                          ("4K","4K (3840 × 2160)")))
-        section("▣  Μορφή εξόδου")
-        choose(self.format,(("MP4","MP4 (προτεινόμενο)"),("MKV","MKV")))
-        section("♪  Ήχος")
-        ttk.Combobox(form,textvariable=self.audio,state="readonly",
-                     values=("AAC Stereo","Dolby Digital AC3","Αρχικός ήχος")).pack(fill="x",padx=8,pady=(2,4))
-        section("Aa  Εξωτερικοί υπότιτλοι SRT / ASS")
-        def subtitle_option(label,variable,values):
-            row=tk.Frame(form,bg=paper);row.pack(fill="x",padx=6,pady=(1,1))
-            tk.Label(row,text=label,bg=paper,fg=navy,font=("Segoe UI",9),
-                     width=10,anchor="w").pack(side="left")
-            ttk.Combobox(row,textvariable=variable,values=values,state="readonly",
-                         font=("Segoe UI",9),width=18).pack(side="left",fill="x",expand=True)
-        subtitle_option("Μέγεθος",self.subtitle_size,
-                        ("Μικρό (80%)","Μεσαίο (100%)","Μεγάλο (120%)","Πολύ μεγάλο (140%)"))
-        subtitle_option("Θέση",self.subtitle_position,("Κάτω","Κέντρο","Πάνω"))
-        delayrow=tk.Frame(form,bg=paper);delayrow.pack(fill="x",padx=6,pady=(1,3))
-        tk.Label(delayrow,text="Καθυστέρηση",bg=paper,fg=navy,
-                 font=("Segoe UI",9),width=10,anchor="w").pack(side="left")
-        ttk.Entry(delayrow,textvariable=self.subtitle_delay,width=8).pack(side="left")
-        tk.Label(delayrow,text="δευτ. (+/-)",bg=paper,fg="#496b88",
-                 font=("Segoe UI",8)).pack(side="left",padx=4)
-        tk.Label(form,text="Η αλλαγή στυλ δημιουργεί συνοδευτικό ASS από SRT.",
-                 bg=paper,fg="#3c6789",font=("Segoe UI",8),wraplength=255,
-                 justify="left").pack(fill="x",padx=7,pady=(0,2))
-        # On small laptop screens keep detailed options visible and scroll Guard below them.
-        settings_footer=form if self.winfo_screenheight()<850 else pinned
-        guard=tk.Frame(settings_footer,bg="#fff1c1",highlightbackground="#d4ae44",highlightthickness=1)
-        guard.pack(fill="x",padx=6,pady=(4,5))
-        tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffdd79",fg="#66450a",
-                 font=("Segoe UI",10,"bold"),anchor="w",padx=8,pady=4).pack(fill="x")
+                rb=tk.Radiobutton(box,text=label,variable=var,value=value,
+                    bg="#f3f8ff",fg=ink,activebackground="#dceeff",
+                    selectcolor="#e4f3ff",anchor="w",justify="left",
+                    font=("Segoe UI",9),highlightthickness=0,borderwidth=0,
+                    padx=8,pady=3)
+                rb.pack(fill="x",padx=5)
+                radios.append((value,rb))
+            def selected(*_):
+                for value,rb in radios:
+                    is_selected=var.get()==value
+                    rb.configure(bg="#b7ddff" if is_selected else "#f3f8ff",
+                                 font=("Segoe UI",9,"bold" if is_selected else "normal"))
+            var.trace_add("write",selected)
+            selected()
+        choices(group(picture,"▣  Προφίλ ποιότητας"),self.quality,
+                (("Μέγιστη","Μέγιστη ποιότητα"),
+                 ("Ισορροπημένη","Ισορροπημένο (προτεινόμενο)"),
+                 ("Μικρότερο αρχείο","Μικρότερο αρχείο")))
+        choices(group(picture,"▣  Ανάλυση εξόδου"),self.size,
+                (("Πρωτότυπη","Πρωτότυπη (χωρίς αλλαγή)"),
+                 ("1080p","Full HD · 1920 × 1080"),
+                 ("4K","Ultra HD · 3840 × 2160")))
+        choices(group(picture,"▣  Μορφή εξόδου"),self.format,
+                (("MP4","MP4 (συμβατό)"),("MKV","MKV")))
+        sound=group(audio_page,"♪  Μορφή ήχου")
+        choices(sound,self.audio,
+                (("AAC Stereo","AAC Stereo · συμβατό"),
+                 ("Dolby Digital AC3","Dolby Digital AC3"),
+                 ("Αρχικός ήχος","Διατήρηση αρχικού ήχου")))
+        details=group(subtitle_page,"Aa  Εμφάνιση υποτίτλων")
+        def option(parent,label,var,values):
+            line=tk.Frame(parent,bg="#f3f8ff")
+            line.pack(fill="x",padx=8,pady=4)
+            tk.Label(line,text=label,bg="#f3f8ff",fg=navy,
+                     font=("Segoe UI",9,"bold"),width=12,anchor="w").pack(side="left")
+            ttk.Combobox(line,textvariable=var,values=values,
+                         font=("Segoe UI",9),state="readonly",
+                         width=15).pack(side="left",fill="x",expand=True)
+        option(details,"Μέγεθος",self.subtitle_size,
+               ("Μικρό (80%)","Μεσαίο (100%)","Μεγάλο (120%)","Πολύ μεγάλο (140%)"))
+        option(details,"Θέση",self.subtitle_position,("Κάτω","Κέντρο","Πάνω"))
+        line=tk.Frame(details,bg="#f3f8ff");line.pack(fill="x",padx=8,pady=(4,9))
+        tk.Label(line,text="Καθυστέρηση",bg="#f3f8ff",fg=navy,
+                 font=("Segoe UI",9,"bold"),width=12,anchor="w").pack(side="left")
+        ttk.Entry(line,textvariable=self.subtitle_delay,width=7).pack(side="left")
+        tk.Label(line,text="δευτερόλεπτα",bg="#f3f8ff",fg="#48627c",
+                 font=("Segoe UI",9)).pack(side="left",padx=6)
+
+        # Always-visible compact footer. The guard shows only real warnings.
+        footer=tk.Frame(right,bg=paper)
+        footer.pack(side="bottom",fill="x",padx=6,pady=(0,5))
+        guard=tk.Frame(footer,bg="#fff0c6",highlightbackground="#ddb655",
+                       highlightthickness=1)
+        guard.pack(fill="x",pady=(1,5))
+        tk.Label(guard,text="⚠  Smart Quality Guard",bg="#ffe09b",fg="#6a4706",
+                 anchor="w",font=("Segoe UI",10,"bold"),
+                 padx=8,pady=4).pack(fill="x")
         self.quality_description=tk.StringVar()
         self.quality_warning=tk.StringVar()
-        tk.Label(guard,textvariable=self.quality_description,bg="#fff1c1",fg="#78540b",
-                 font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
-        tk.Label(guard,textvariable=self.quality_warning,bg="#fff1c1",fg="#78540b",
-                 font=("Segoe UI",9),wraplength=250,justify="left",padx=7,pady=2).pack(fill="x")
-        buttons=tk.Frame(settings_footer,bg=paper);buttons.pack(fill="x",padx=6,pady=(1,3))
-        ttk.Button(buttons,text="⚙ Προτεινόμενες",command=self.recommended_settings).pack(
-            side="left",fill="x",expand=True,padx=(0,3))
-        ttk.Button(buttons,text="↺ Επαναφορά",command=self.recommended_settings).pack(
-            side="left",fill="x",expand=True,padx=(3,0))
-        section("▣  Φάκελος αποθήκευσης")
-        destrow=tk.Frame(form,bg=paper);destrow.pack(fill="x",padx=6,pady=(0,8))
-        ttk.Entry(destrow,textvariable=self.output).pack(side="left",fill="x",expand=True,padx=(0,4))
-        ttk.Button(destrow,text="…",width=2,command=self.destination).pack(side="right")
+        self.guard_message=tk.Label(guard,textvariable=self.quality_warning,
+                 bg="#fff0c6",fg="#7a4908",font=("Segoe UI",9),
+                 anchor="w",justify="left",wraplength=295,padx=8,pady=3)
+        self.guard_message.pack(fill="x")
+        actions=tk.Frame(footer,bg=paper)
+        actions.pack(fill="x",pady=(1,4))
+        ttk.Button(actions,text="✓ Προτεινόμενες",
+                   command=self.recommended_settings).pack(
+                       side="left",fill="x",expand=True,padx=(0,3))
+        ttk.Button(actions,text="↺ Επαναφορά",
+                   command=self.recommended_settings).pack(
+                       side="left",fill="x",expand=True,padx=(3,0))
+        location=tk.Frame(footer,bg="#d4e7f8",highlightbackground="#a1c0db",
+                          highlightthickness=1)
+        location.pack(fill="x",pady=(2,0))
+        tk.Label(location,text="▣  Φάκελος εξόδου",bg="#d4e7f8",fg=navy,
+                 font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=3).pack(fill="x")
+        loc_row=tk.Frame(location,bg="#d4e7f8")
+        loc_row.pack(fill="x",padx=5,pady=(0,5))
+        ttk.Entry(loc_row,textvariable=self.output).pack(
+                 side="left",fill="x",expand=True,padx=(0,4))
+        ttk.Button(loc_row,text="…",width=2,command=self.destination).pack(side="right")
     def open_settings(self):
-        if hasattr(self,"settings_canvas"):
-            self.settings_canvas.yview_moveto(0)
-            self.settings_canvas.focus_set()
+        self.settings_tabs.select(0)
+        self.settings_tabs.focus_set()
     def show_about(self):
         messagebox.showinfo("MovieShrink Pro","MovieShrink Pro για Windows 10.\n"
               "MP4 / MKV, 1080p / 4K, ουρά μετατροπής, FFmpeg.\n"
@@ -630,21 +652,19 @@ class MovieShrink(tk.Tk):
         self.format.set("MP4")
         self.audio.set("AAC Stereo")
     def update_quality_hint(self,*_):
-        if not hasattr(self,"quality_description"):return
-        quality_text={"Μέγιστη":"Πιο καθαρή εικόνα • μεγαλύτερο αρχείο.",
-                      "Ισορροπημένη":"Προτεινόμενο προφίλ • καλή ισορροπία εικόνας και μεγέθους.",
-                      "Μικρότερο αρχείο":"Μικρότερο μέγεθος • πιθανή απώλεια λεπτομέρειας."}
-        self.quality_description.set(quality_text.get(self.quality.get(),""))
-        warnings=[]
+        if not hasattr(self,"quality_warning"):return
+        # No permanent explanatory paragraph: warn only when a real risk applies.
+        warning=""
         if self.size.get()=="4K":
-            warnings.append("Το 4K απαιτεί πολύ χρόνο και δεν αυξάνει την πραγματική λεπτομέρεια.")
-        elif self.size.get()=="1080p":
-            warnings.append("Αν η πηγή είναι 720p, η αναβάθμιση σε 1080p δεν προσθέτει λεπτομέρεια.")
-        if self.audio.get()=="Dolby Digital AC3":
-            warnings.append("Το AC3 δεν δημιουργεί αυθεντικό 5.1 από stereo.")
-        if self.format.get()=="MP4" and self.audio.get()=="Αρχικός ήχος":
-            warnings.append("Ο αρχικός ήχος ενδέχεται να μην είναι συμβατός με MP4.")
-        self.quality_warning.set(" ".join(warnings) if warnings else "Οι ρυθμίσεις είναι κατάλληλες για τυπική αναπαραγωγή.")
+            warning="4K: πολύ αργή μετατροπή · το upscaling δεν προσθέτει λεπτομέρεια."
+        elif self.audio.get()=="Dolby Digital AC3":
+            warning="Το AC3 δεν δημιουργεί πραγματικό surround από stereo."
+        elif self.format.get()=="MP4" and self.audio.get()=="Αρχικός ήχος":
+            warning="Ο αρχικός ήχος ίσως δεν είναι συμβατός με MP4."
+        self.quality_warning.set(warning)
+        if hasattr(self,"guard_message"):
+            if warning:self.guard_message.pack(fill="x")
+            else:self.guard_message.pack_forget()
     def _selected(self,event=None):
         if not self.items:return
         selected=self.tree.selection()
