@@ -527,7 +527,7 @@ class MovieShrink(tk.Tk):
         ttk.Button(subrow,text="📂 SRT / ASS",command=self.browse_subtitle).pack(side="right")
         # Clearly separated settings tabs, without scrolling through one huge form.
         settings_root=tk.Frame(right,bg=paper)
-        settings_root.pack(fill="both",expand=True,padx=6,pady=(5,3))
+        # Right settings are packed after the fixed footer.
         style.configure("Output.TNotebook",background="#c4dcf5",borderwidth=1)
         style.configure("Output.TNotebook.Tab",font=("Segoe UI",10,"bold"),
                         padding=(10,6),background="#c9dff3",foreground=navy)
@@ -537,7 +537,17 @@ class MovieShrink(tk.Tk):
         tabs=ttk.Notebook(settings_root,style="Output.TNotebook")
         tabs.pack(side="top",fill="both",expand=True)
         self.settings_tabs=tabs
-        picture=tk.Frame(tabs,bg=paper,padx=5,pady=5)
+        picture=tk.Frame(tabs,bg=paper)
+        pic_canvas=tk.Canvas(picture,bg=paper,highlightthickness=0)
+        pic_scroll=ttk.Scrollbar(picture,orient="vertical",command=pic_canvas.yview)
+        pic_canvas.configure(yscrollcommand=pic_scroll.set)
+        pic_scroll.pack(side="right",fill="y")
+        pic_canvas.pack(side="left",fill="both",expand=True)
+        picture_form=tk.Frame(pic_canvas,bg=paper,padx=5,pady=3)
+        pic_window=pic_canvas.create_window((0,0),window=picture_form,anchor="nw")
+        picture_form.bind("<Configure>",lambda e:pic_canvas.configure(scrollregion=pic_canvas.bbox("all")))
+        pic_canvas.bind("<Configure>",lambda e:pic_canvas.itemconfigure(pic_window,width=e.width))
+        pic_canvas.bind("<MouseWheel>",lambda e:pic_canvas.yview_scroll(-int(e.delta/120),"units"))
         audio_page=tk.Frame(tabs,bg=paper,padx=5,pady=5)
         subtitle_page=tk.Frame(tabs,bg=paper,padx=5,pady=5)
         tabs.add(picture,text="▣ Εικόνα")
@@ -567,7 +577,7 @@ class MovieShrink(tk.Tk):
                                  font=("Segoe UI",9,"bold" if is_selected else "normal"))
             var.trace_add("write",selected)
             selected()
-        choices(group(picture,"▣  Προφίλ ποιότητας"),self.quality,
+        choices(group(picture_form,"▣  Προφίλ ποιότητας"),self.quality,
                 (("Μέγιστη","Μέγιστη ποιότητα"),
                  ("Ισορροπημένη","Ισορροπημένο (προτεινόμενο)"),
                  ("Μικρότερο αρχείο","Μικρότερο αρχείο")))
@@ -603,7 +613,8 @@ class MovieShrink(tk.Tk):
 
         # Always-visible compact footer. The guard shows only real warnings.
         footer=tk.Frame(right,bg=paper)
-        footer.pack(side="bottom",fill="x",padx=6,pady=(0,5))
+        footer.pack(side="bottom",fill="x",padx=6,pady=(0,4))
+        settings_root.pack(side="top",fill="both",expand=True,padx=6,pady=(3,2))
         guard=tk.Frame(footer,bg="#fff0c6",highlightbackground="#ddb655",
                        highlightthickness=1)
         guard.pack(fill="x",pady=(1,5))
