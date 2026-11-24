@@ -397,7 +397,8 @@ class MovieShrink(tk.Tk):
                 px=290+n*26
                 dr.polygon([(px,37),(px+11,34),(px+25,65),(px+13,67)],fill="#081d37")
             dr.polygon([(310,86),(310,128),(352,107)],fill="white")
-            banner.alpha_composite(art,(7,8))
+            art=art.resize((438,212),Image.Resampling.LANCZOS)
+            banner.alpha_composite(art,(4,7))
             self.brand_image=ImageTk.PhotoImage(logo.resize((64,64),Image.Resampling.LANCZOS))
         except Exception:
             bd.ellipse((22,20,190,188),fill="#0e5b9c",outline="#68cbff",width=6)
@@ -405,22 +406,22 @@ class MovieShrink(tk.Tk):
             face="segoeuiz.ttf" if bold and italic else ("segoeuib.ttf" if bold else "segoeui.ttf")
             try:return ImageFont.truetype(os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts",face),sz)
             except OSError:return ImageFont.load_default()
-        titlefont=font(85,True,True)
-        smallfont=font(29,True)
+        titlefont=font(103,True,True)
+        smallfont=font(27,True)
         bd=ImageDraw.Draw(banner)
-        bd.text((393,26),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
-        bd.text((389,21),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
+        bd.text((457,25),"MovieShrink",font=titlefont,fill="#020d21",stroke_width=5,stroke_fill="#05132c")
+        bd.text((453,20),"MovieShrink",font=titlefont,fill="#ffffff",stroke_width=1,stroke_fill="#afdfff")
         title_size=bd.textbbox((0,0),"MovieShrink",font=titlefont)
-        wordx=389+title_size[2]-title_size[0]+10
+        wordx=453+title_size[2]-title_size[0]+10
         bd.text((wordx+4,26),"Pro",font=titlefont,fill="#06101f",stroke_width=5,stroke_fill="#05132c")
         bd.text((wordx,21),"Pro",font=titlefont,fill="#ffca44",stroke_width=1,stroke_fill="#ffe99c")
-        bd.text((394,132),"DVD / USB / MP4   •   Full HD 1080p & 4K",
+        bd.text((468,144),"DVD / USB / MP4   •   Full HD 1080p & 4K",
                 font=smallfont,fill="#c5e8ff")
         # Right-hand badges shrink to compact marks on smaller laptop screens.
-        badges=(("DVD",70),("USB",70),("MP4",74),("1080p",106),("4K",67))
+        badges=(("DVD",95),("USB",95),("MP4",100),("1080p",132),("4K",79))
         total=sum(width for _,width in badges)+12*(len(badges)-1)
         rx=W-total-23
-        badgefont=font(24)
+        badgefont=font(27)
         for label,bw in badges:
             is_gold=label in ("1080p","4K")
             bd.rounded_rectangle((rx,62,rx+bw,147),radius=12,
