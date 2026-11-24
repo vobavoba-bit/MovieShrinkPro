@@ -337,6 +337,16 @@ class MovieShrink(tk.Tk):
         style.map("TRadiobutton",background=[("active","#d5eafd")])
         style.configure("TCheckbutton",font=("Segoe UI",9),background=paper,foreground=ink)
         style.configure("TCombobox",font=("Segoe UI",9))
+        for style_name,background,foreground in (
+                ("PreviewPlay.TButton","#bdf0d2","#0b6a30"),
+                ("PreviewPause.TButton","#cfe6fc","#0c4c85"),
+                ("PreviewStop.TButton","#ffd8db","#9d1724"),
+                ("PreviewFrame.TButton","#dfecfa","#27527d")):
+            style.configure(style_name,font=("Segoe UI",9,"bold"),padding=(5,5),
+                            background=background,foreground=foreground,
+                            bordercolor="#7a9db9",relief="raised")
+            style.map(style_name,background=[("active","#a8dcf8")])
+
         style.configure("Green.Horizontal.TProgressbar",background="#19bd42",troughcolor="#b3cce6",thickness=18)
         style.configure("Blue.Horizontal.TProgressbar",background="#1595e1",troughcolor="#b3cce6",thickness=18)
         def load_font(size,bold=False):
@@ -610,13 +620,13 @@ class MovieShrink(tk.Tk):
         tk.Label(transport,text="🔇",bg="#112d48",fg="#e2f2ff",
                  font=("Segoe UI",10)).pack(side="right",padx=5)
         pc=tk.Frame(center,bg=paper);pc.pack(fill="x",padx=4,pady=(1,1))
-        self.preview_button=ttk.Button(pc,text="▶ Παίξε",command=self.enable_preview)
+        self.preview_button=ttk.Button(pc,text="▶ Παίξε",command=self.enable_preview,style="PreviewPlay.TButton")
         self.preview_button.pack(side="left",padx=(0,2))
-        self.preview_pause_button=ttk.Button(pc,text="⏸ Παύση",command=self.pause_preview,state="disabled")
+        self.preview_pause_button=ttk.Button(pc,text="⏸ Παύση",command=self.pause_preview,state="disabled",style="PreviewPause.TButton")
         self.preview_pause_button.pack(side="left",padx=(0,2))
-        self.preview_off_button=ttk.Button(pc,text="■ Κλείσιμο",command=self.disable_preview,state="disabled")
+        self.preview_off_button=ttk.Button(pc,text="■ Κλείσιμο",command=self.disable_preview,state="disabled",style="PreviewStop.TButton")
         self.preview_off_button.pack(side="left",padx=(0,2))
-        self.preview_capture_button=ttk.Button(pc,text="📷",width=3,command=self.save_preview_frame,state="disabled")
+        self.preview_capture_button=ttk.Button(pc,text="▣",width=3,command=self.save_preview_frame,state="disabled",style="PreviewFrame.TButton")
         self.preview_capture_button.pack(side="left")
         self.preview_state=tk.StringVar(value="Κλειστή • εξοικονόμηση CPU")
         tk.Label(center,textvariable=self.preview_state,bg=paper,fg="#406b94",
