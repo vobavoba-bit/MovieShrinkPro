@@ -83,6 +83,8 @@ jobs:
           Copy-Item dist/MovieShrinkPro.exe dist/embedded/MovieShrinkPro.exe
           python embed_banner.py dist/embedded/MovieShrinkPro.exe banner_smoke.jpg
           $exe = (Resolve-Path 'dist/embedded/MovieShrinkPro.exe').Path
+          $verify = Start-Process -FilePath $exe -ArgumentList '--verify-banner' -Wait -PassThru
+          if ($verify.ExitCode -ne 0) { throw "The real GUI could not read its embedded header" }
           $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Embedded-banner self-test failed with $($p.ExitCode)" }
           $gui = Start-Process -FilePath $exe -PassThru
