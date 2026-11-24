@@ -211,6 +211,50 @@ class MovieShrink(tk.Tk):
             sync_skin()
         button.bind("<Enter>",enter);button.bind("<Leave>",leave)
         return button
+    def cinema_progressbar(self,parent,variable,kind):
+        """AA rounded progress rails with chrome highlights, green/blue liquid fill."""
+        from PIL import Image,ImageDraw,ImageTk
+        rail=tk.Canvas(parent,bg="#f9fcff",height=23,highlightthickness=0,
+                       borderwidth=0,relief="flat")
+        rail._photo=None
+        rail._last_render=None
+        top,bottom,border=(("#72ee7c","#078332","#126a30") if kind=="green"
+                           else ("#69d7ff","#076ab8","#0c5b9f"))
+        def rgb(hexstr):return tuple(bytes.fromhex(hexstr[1:]))
+        def interpolate(a,b,t):return tuple(int(a[i]*(1-t)+b[i]*t) for i in range(3))
+        def paint(*_):
+            width=max(10,rail.winfo_width())
+            value=max(0,min(100,float(variable.get())))
+            signature=(width,round(value,2))
+            if signature==rail._last_render:return
+            rail._last_render=signature
+            scale=2;w=width*scale;h=44
+            im=Image.new("RGBA",(w,h),(0,0,0,0))
+            d=ImageDraw.Draw(im)
+            d.rounded_rectangle((1,3,w-3,h-4),radius=13,
+                                fill="#b8cadd",outline="#5c7f9e",width=3)
+            d.rounded_rectangle((6,8,w-8,h-9),radius=10,fill="#eaf4fc")
+            if value>0:
+                fillwidth=max(5,int((w-15)*value/100))
+                xend=min(w-8,7+fillwidth)
+                mask=Image.new("L",(w,h),0)
+                ImageDraw.Draw(mask).rounded_rectangle((7,9,xend,h-10),radius=9,fill=255)
+                ink=Image.new("RGBA",(w,h),(0,0,0,0))
+                gd=ImageDraw.Draw(ink)
+                for yy in range(9,h-9):
+                    t=(yy-9)/(h-18)
+                    gd.line((7,yy,xend,yy),fill=interpolate(rgb(top),rgb(bottom),t)+(255,))
+                im.paste(ink,(0,0),mask)
+                d=ImageDraw.Draw(im)
+                d.line((13,12,max(14,xend-8),12),fill=(249,255,255,145),width=3)
+                d.line((13,h-12,max(14,xend-8),h-12),fill=rgb(border)+(200,),width=2)
+            rail._photo=ImageTk.PhotoImage(im.resize((width,22),Image.Resampling.LANCZOS))
+            rail.delete("all")
+            rail.create_image(0,0,anchor="nw",image=rail._photo)
+        rail.bind("<Configure>",paint)
+        variable.trace_add("write",paint)
+        rail._paint=paint
+        return rail
     def metallic_toolbar_button(self,parent,caption,action,symbol,width=204):
         """Antialiased silver-blue ribbon control (not native flat ttk)."""
         from PIL import Image,ImageDraw,ImageFont,ImageTk
@@ -429,8 +473,9 @@ class MovieShrink(tk.Tk):
             barrow=tk.Frame(bframe,bg=white);barrow.pack(fill="x",pady=(0,3))
             tk.Label(barrow,textvariable=percentage_text,bg=white,fg="#173453",
                      font=("Segoe UI",12,"bold"),width=7,anchor="e").pack(side="right",padx=(8,0))
-            ttk.Progressbar(barrow,variable=percentage,maximum=100,
-                            style=style_name).pack(side="left",fill="x",expand=True,pady=3)
+            self.cinema_progressbar(barrow,percentage,
+                                    "green" if percentage is self.pct else "blue").pack(
+                                        side="left",fill="x",expand=True,pady=3)
         foot=tk.Frame(bottom,bg=white);foot.pack(fill="x",padx=10,pady=(1,2))
         tk.Label(foot,textvariable=self.status,bg=white,fg="#23547e",
                  font=("Segoe UI",9,"bold"),anchor="w").pack(side="left")
