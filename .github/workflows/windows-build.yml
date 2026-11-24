@@ -74,6 +74,20 @@ jobs:
       - name: Verify actual screenshot contains green Start and red Stop
         shell: pwsh
         run: python verify_real_gui.py
+      - name: Verify a real embedded banner in the standalone EXE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -c "from PIL import Image; i=Image.open('MovieShrinkPro_Real_Large_Window.png'); w,h=i.size; i.crop((0,30,w,min(h,150))).save('banner_smoke.jpg',quality=80)"
+          python embed_banner.py dist/MovieShrinkPro.exe banner_smoke.jpg
+          $exe = (Resolve-Path 'dist/MovieShrinkPro.exe').Path
+          $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Embedded-banner self-test failed with $($p.ExitCode)" }
+          $gui = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 7
+          $gui.Refresh()
+          if ($gui.HasExited) { throw "Embedded-banner GUI exited unexpectedly with $($gui.ExitCode)" }
+          Stop-Process -Id $gui.Id -Force
       - name: Create download ZIP
         shell: pwsh
         run: |
