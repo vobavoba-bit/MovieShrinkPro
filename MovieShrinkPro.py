@@ -283,7 +283,7 @@ class MovieShrink(tk.Tk):
         style.configure("TButton",font=("Segoe UI",9,"bold"),padding=(7,5),
                         background="#d2e7fc",foreground="#123f6e",bordercolor="#7eabd1")
         style.map("TButton",background=[("active","#a9d6fc")])
-        style.configure("Treeview",font=("Segoe UI",9),rowheight=25,
+        style.configure("Treeview",font=("Segoe UI",10),rowheight=28,
                         background="#f9fcff",fieldbackground="#f9fcff",foreground=ink)
         style.configure("Treeview.Heading",font=("Segoe UI",9,"bold"),background="#c0d8f3",
                         foreground=navy,padding=6)
@@ -292,8 +292,8 @@ class MovieShrink(tk.Tk):
         style.map("TRadiobutton",background=[("active","#d5eafd")])
         style.configure("TCheckbutton",font=("Segoe UI",9),background=paper,foreground=ink)
         style.configure("TCombobox",font=("Segoe UI",9))
-        style.configure("Green.Horizontal.TProgressbar",background="#1ccb43",troughcolor="#b7cee3",thickness=14)
-        style.configure("Blue.Horizontal.TProgressbar",background="#149cee",troughcolor="#b7cee3",thickness=13)
+        style.configure("Green.Horizontal.TProgressbar",background="#19bd42",troughcolor="#b3cce6",thickness=18)
+        style.configure("Blue.Horizontal.TProgressbar",background="#1595e1",troughcolor="#b3cce6",thickness=18)
         def load_font(size,bold=False):
             fn="segoeuib.ttf" if bold else "segoeui.ttf"
             path=os.path.join(os.environ.get("WINDIR","C:\\Windows"),"Fonts",fn)
@@ -407,11 +407,11 @@ class MovieShrink(tk.Tk):
         bottom=tk.Frame(self,bg=white,highlightbackground="#5987b9",highlightthickness=2)
         bottom.pack(side="bottom",fill="x",padx=8,pady=(3,6))
         tk.Label(bottom,text="▥   ΠΡΟΟΔΟΣ ΜΕΤΑΤΡΟΠΗΣ",bg="#0c477d",fg="white",
-                 font=("Segoe UI",11,"bold"),anchor="w",padx=9,pady=2).pack(fill="x")
+                 font=("Segoe UI",11,"bold"),anchor="w",padx=11,pady=4).pack(fill="x")
         inner=tk.Frame(bottom,bg=white);inner.pack(fill="x",padx=10,pady=(2,0))
         # Single pair of main actions: vertical, right-aligned, with no duplicates.
-        controls=tk.Frame(inner,bg="#d8e8fb",highlightbackground="#8eb0d6",
-                          highlightthickness=1,padx=6,pady=3)
+        controls=tk.Frame(inner,bg="#d9eafd",highlightbackground="#638cb7",
+                          highlightthickness=2,padx=8,pady=6)
         controls.pack(side="right",padx=(8,0),pady=(0,1))
         self.action_panel=controls
         self.btn=self.glossy_button(controls,"ΕΝΑΡΞΗ",self.start,
@@ -433,7 +433,7 @@ class MovieShrink(tk.Tk):
                             style=style_name).pack(side="left",fill="x",expand=True,pady=3)
         foot=tk.Frame(bottom,bg=white);foot.pack(fill="x",padx=10,pady=(1,2))
         tk.Label(foot,textvariable=self.status,bg=white,fg="#23547e",
-                 font=("Segoe UI",9),anchor="w").pack(side="left")
+                 font=("Segoe UI",9,"bold"),anchor="w").pack(side="left")
         tk.Label(foot,textvariable=self.metrics,bg=white,fg="#23547e",
                  font=("Segoe UI",9,"bold"),anchor="e").pack(side="right")
         # Three true interactive panels, preserving functionality.
@@ -524,7 +524,7 @@ class MovieShrink(tk.Tk):
         self.preview_capture_button.pack(side="left")
         self.preview_state=tk.StringVar(value="Κλειστή • εξοικονόμηση CPU")
         tk.Label(center,textvariable=self.preview_state,bg=paper,fg="#406b94",
-                 font=("Segoe UI",9),anchor="w",padx=7).pack(fill="x")
+                 font=("Segoe UI",9,"bold"),anchor="w",padx=7).pack(fill="x")
         self.current_detail=tk.StringVar(value="Επίλεξε ταινία από την ουρά")
         tk.Label(center,textvariable=self.current_detail,bg=paper,fg=navy,
                  font=("Segoe UI",9,"bold"),anchor="w",wraplength=295,
@@ -546,7 +546,7 @@ class MovieShrink(tk.Tk):
         # Right settings are packed after the fixed footer.
         style.configure("Output.TNotebook",background="#c4dcf5",borderwidth=1)
         style.configure("Output.TNotebook.Tab",font=("Segoe UI",10,"bold"),
-                        padding=(10,6),background="#c9dff3",foreground=navy)
+                        padding=(13,8),background="#c9dff3",foreground=navy)
         style.map("Output.TNotebook.Tab",
                   background=[("selected","#f8fbff"),("active","#deefff")],
                   foreground=[("selected","#0a467f")])
