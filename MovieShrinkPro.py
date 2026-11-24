@@ -543,9 +543,9 @@ class MovieShrink(tk.Tk):
         right=panel(2,"Ρυθμίσεις εξόδου","settings")
         # Queue includes duration and source dimensions, populated asynchronously.
         lst=tk.Frame(left,bg=paper);lst.pack(fill="both",expand=True,padx=3,pady=(3,0))
-        cols=("file","duration","resolution","pct","state")
+        cols=("checked","file","duration","resolution","pct","state")
         self.tree=ttk.Treeview(lst,columns=cols,show="headings",selectmode="extended",height=8)
-        for key,label,w in (("file","Όνομα αρχείου",155),("duration","Διάρκεια",65),
+        for key,label,w in (("checked","✓",30),("file","Όνομα αρχείου",155),("duration","Διάρκεια",65),
                             ("resolution","Πηγή",75),("pct","%",42),("state","Κατάσταση",92)):
             self.tree.heading(key,text=label)
             self.tree.column(key,width=w,minwidth=30,stretch=(key=="file"))
@@ -562,6 +562,7 @@ class MovieShrink(tk.Tk):
         self.tree.tag_configure("completed",background="#d9f6e0",foreground="#0f5630")
         self.tree.tag_configure("error",background="#ffe1e0",foreground="#8e1d1d")
         self.tree.bind("<<TreeviewSelect>>",self._selected)
+        self.tree.bind("<Button-1>",self.toggle_queue_checkbox)
         self.queue_summary=tk.StringVar(value="0 ταινίες στην ουρά")
         tk.Label(left,textvariable=self.queue_summary,bg="#cfe1f3",fg=navy,
                  font=("Segoe UI",9,"bold"),anchor="w",padx=7,pady=4).pack(side="bottom",fill="x")
@@ -765,6 +766,17 @@ class MovieShrink(tk.Tk):
         if hasattr(self,"guard_message"):
             if warning:self.guard_message.pack(fill="x")
             else:self.guard_message.pack_forget()
+    def toggle_queue_checkbox(self,event):
+        if self.worker and self.worker.is_alive():return
+        if self.tree.identify_region(event.x,event.y)!="cell":return
+        if self.tree.identify_column(event.x)!="#1":return
+        row=self.tree.identify_row(event.y)
+        if not row:return
+        i=int(row)
+        if 0<=i<len(self.items):
+            self.items[i]["enabled"]=not self.items[i].get("enabled",True)
+            self.refresh()
+        return "break"
     def _selected(self,event=None):
         if not self.items:return
         selected=self.tree.selection()
@@ -784,12 +796,13 @@ class MovieShrink(tk.Tk):
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
         for i,x in enumerate(self.items):
-            self.tree.insert("","end",iid=str(i),tags=(("active" if x["state"]=="Επεξεργασία" else "completed" if x["state"]=="Έτοιμο" else "error" if x["state"]=="Σφάλμα" else "odd" if i%2 else "even"),),values=(x["path"].name,x.get("duration_text","—"),x.get("resolution","—"),f'{x["pct"]:.0f}%',x["state"]))
-        if self.items:self.allpct.set(sum(x["pct"] for x in self.items)/len(self.items))
+            self.tree.insert("","end",iid=str(i),tags=(("active" if x["state"]=="Επεξεργασία" else "completed" if x["state"]=="Έτοιμο" else "error" if x["state"]=="Σφάλμα" else "odd" if i%2 else "even"),),values=("☑" if x.get("enabled",True) else "☐",x["path"].name,x.get("duration_text","—"),x.get("resolution","—"),f'{x["pct"]:.0f}%',x["state"]))
+        enabled=[x for x in self.items if x.get("enabled",True)]
+        self.allpct.set(sum(x["pct"] for x in enabled)/len(enabled) if enabled else 0)
         if hasattr(self,"empty_queue_hint"):
             if self.items:self.empty_queue_hint.place_forget()
             else:self.empty_queue_hint.place(relx=.5,rely=.5,anchor="center")
-        if hasattr(self,"queue_summary"):self.queue_summary.set(f"{len(self.items)} ταινίες  ·  {sum(x['state']=='Έτοιμο' for x in self.items)} ολοκληρωμένες")
+        if hasattr(self,"queue_summary"):self.queue_summary.set(f"{sum(x.get('enabled',True) for x in self.items)}/{len(self.items)} επιλεγμένες  ·  {sum(x['state']=='Έτοιμο' for x in self.items)} ολοκληρωμένες")
     def sub(self,p):
         custom=self.external_subtitles.get(str(p))
         if custom and custom.is_file():return custom
@@ -799,7 +812,7 @@ class MovieShrink(tk.Tk):
         for name in paths:
             p=P(name)
             if p.is_file() and p.suffix.lower() in EXT and str(p) not in seen:
-                self.items.append(dict(path=p,state="Αναμονή",pct=0));seen.add(str(p))
+                self.items.append(dict(path=p,state="Αναμονή",pct=0,enabled=True));seen.add(str(p))
                 index=len(self.items)-1
                 def metadata(i=index,filename=p):
                     try:
@@ -1000,7 +1013,8 @@ class MovieShrink(tk.Tk):
         self.destroy()
     def start(self):
         if self.worker and self.worker.is_alive():return
-        if not self.items:messagebox.showwarning("Προσοχή","Πρόσθεσε ταινίες.");return
+        if not any(x.get("enabled",True) for x in self.items):
+            messagebox.showwarning("Προσοχή","Επίλεξε ταινίες για μετατροπή.");return
         if not binary("ffmpeg.exe") or not binary("ffprobe.exe"):messagebox.showerror("Σφάλμα","Λείπουν τα ενσωματωμένα εργαλεία μετατροπής.");return
         try:
             P(self.output.get()).mkdir(parents=True,exist_ok=True)
@@ -1029,7 +1043,7 @@ class MovieShrink(tk.Tk):
     def convert(self,cfg):
         for i,x in enumerate(self.items):
             if self.stopflag:break
-            if x["state"]=="Έτοιμο":continue
+            if not x.get("enabled",True) or x["state"]=="Έτοιμο":continue
             tmp=None
             try:
                 source=x["path"];duration,w,h,a=probe(source);x["state"]="Επεξεργασία"
@@ -1149,7 +1163,7 @@ class MovieShrink(tk.Tk):
                     self.metrics.set(f"Ταχύτητα: {fps:.1f} FPS | Υπόλοιπο: περίπου {eta/60:.0f} λεπτά")
                 elif event[0]=="done":
                     self.btn.configure(state="normal");self.btn._update_skin()
-                    self.status.set(f'Ολοκληρώθηκαν {sum(x["state"]=="Έτοιμο" for x in self.items)}/{len(self.items)} ταινίες')
+                    self.status.set(f'Ολοκληρώθηκαν {sum(x["state"]=="Έτοιμο" for x in self.items)}/{sum(x.get("enabled",True) for x in self.items)} επιλεγμένες ταινίες')
                 if event[0] in ("progress","refresh","done"):self.refresh()
         except queue.Empty:pass
         self.after(100,self.poll)
