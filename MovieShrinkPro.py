@@ -765,6 +765,7 @@ class MovieShrink(tk.Tk):
         switch.bind("<Button-1>",lambda _:(self.smart_guard_enabled.set(not self.smart_guard_enabled.get()),
                                            self.update_quality_hint()))
         self.smart_guard_enabled.trace_add("write",render_guard_switch)
+        self.smart_guard_enabled.trace_add("write",lambda *_:self.update_quality_hint())
         render_guard_switch()
         self.guard_switch=switch
         self.quality_description=tk.StringVar()
