@@ -50,6 +50,17 @@ assert len(app.btn._action_images) == 3
 assert len(app.stop_btn._action_images) == 3
 assert len(app.settings_tabs.tabs()) == 3
 assert app.quality_warning.get() == "", "No permanent Quality Guard description"
+assert app.smart_guard_enabled.get() is True
+assert app.guard_switch.winfo_exists()
+app.smart_guard_enabled.set(False)
+app.size.set("4K")
+app.update_idletasks()
+assert app.quality_warning.get()==""
+app.smart_guard_enabled.set(True)
+app.update_idletasks()
+assert "4K" in app.quality_warning.get()
+app.recommended_settings()
+
 app.size.set("4K")
 app.update_idletasks()
 assert "4K" in app.quality_warning.get()
